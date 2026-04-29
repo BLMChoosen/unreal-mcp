@@ -237,49 +237,143 @@ def register_blueprint_node_tools(mcp: FastMCP):
         blueprint_name: str,
         variable_name: str,
         variable_type: str,
-        is_exposed: bool = False
+        is_exposed: bool = False,
+        default_value: Any = None
     ) -> Dict[str, Any]:
         """
         Add a variable to a Blueprint.
-        
+
         Args:
             blueprint_name: Name of the target Blueprint
             variable_name: Name of the variable
-            variable_type: Type of the variable (Boolean, Integer, Float, Vector, etc.)
-            is_exposed: Whether to expose the variable to the editor
-            
+            variable_type: Type of the variable (Boolean, Integer, Float, String, Name,
+                           Text, Byte, Vector, Rotator, Transform).
+            is_exposed: Whether to expose the variable to the editor.
+            default_value: Optional default value (string/number/bool). Stored as a
+                           string on FBPVariableDescription.DefaultValue.
+
         Returns:
-            Response indicating success or failure
+            Response indicating success or failure.
         """
         from unreal_mcp_server import get_unreal_connection
-        
+
         try:
             params = {
                 "blueprint_name": blueprint_name,
                 "variable_name": variable_name,
                 "variable_type": variable_type,
-                "is_exposed": is_exposed
+                "is_exposed": is_exposed,
             }
-            
+            if default_value is not None:
+                params["default_value"] = default_value
+
             unreal = get_unreal_connection()
             if not unreal:
                 logger.error("Failed to connect to Unreal Engine")
                 return {"success": False, "message": "Failed to connect to Unreal Engine"}
-            
+
             logger.info(f"Adding variable '{variable_name}' to blueprint '{blueprint_name}'")
             response = unreal.send_command("add_blueprint_variable", params)
-            
+
             if not response:
                 logger.error("No response from Unreal Engine")
                 return {"success": False, "message": "No response from Unreal Engine"}
-            
+
             logger.info(f"Variable creation response: {response}")
             return response
-            
+
         except Exception as e:
             error_msg = f"Error adding variable: {e}"
             logger.error(error_msg)
             return {"success": False, "message": error_msg}
+
+    @mcp.tool()
+    def get_blueprint_variable(
+        ctx: Context,
+        blueprint_name: str,
+        variable_name: str
+    ) -> Dict[str, Any]:
+        """Return metadata about a Blueprint variable (type, default, exposure)."""
+        from unreal_mcp_server import get_unreal_connection
+        try:
+            unreal = get_unreal_connection()
+            if not unreal:
+                return {"success": False, "message": "Failed to connect to Unreal Engine"}
+            response = unreal.send_command("get_blueprint_variable", {
+                "blueprint_name": blueprint_name,
+                "variable_name": variable_name
+            })
+            return response or {"success": False, "message": "No response"}
+        except Exception as e:
+            logger.error(f"Error getting variable: {e}")
+            return {"success": False, "message": str(e)}
+
+    @mcp.tool()
+    def add_blueprint_variable_get_node(
+        ctx: Context,
+        blueprint_name: str,
+        variable_name: str,
+        node_position: List[float] = [0.0, 0.0]
+    ) -> Dict[str, Any]:
+        """Place a 'Get Variable' node in the Blueprint event graph."""
+        from unreal_mcp_server import get_unreal_connection
+        try:
+            unreal = get_unreal_connection()
+            if not unreal:
+                return {"success": False, "message": "Failed to connect to Unreal Engine"}
+            response = unreal.send_command("add_blueprint_variable_get_node", {
+                "blueprint_name": blueprint_name,
+                "variable_name": variable_name,
+                "node_position": node_position
+            })
+            return response or {"success": False, "message": "No response"}
+        except Exception as e:
+            logger.error(f"Error adding variable get node: {e}")
+            return {"success": False, "message": str(e)}
+
+    @mcp.tool()
+    def add_blueprint_variable_set_node(
+        ctx: Context,
+        blueprint_name: str,
+        variable_name: str,
+        node_position: List[float] = [0.0, 0.0]
+    ) -> Dict[str, Any]:
+        """Place a 'Set Variable' node in the Blueprint event graph."""
+        from unreal_mcp_server import get_unreal_connection
+        try:
+            unreal = get_unreal_connection()
+            if not unreal:
+                return {"success": False, "message": "Failed to connect to Unreal Engine"}
+            response = unreal.send_command("add_blueprint_variable_set_node", {
+                "blueprint_name": blueprint_name,
+                "variable_name": variable_name,
+                "node_position": node_position
+            })
+            return response or {"success": False, "message": "No response"}
+        except Exception as e:
+            logger.error(f"Error adding variable set node: {e}")
+            return {"success": False, "message": str(e)}
+
+    @mcp.tool()
+    def add_branch_node(
+        ctx: Context,
+        blueprint_name: str,
+        node_position: List[float] = [0.0, 0.0]
+    ) -> Dict[str, Any]:
+        """Place a Branch (UK2Node_IfThenElse) node in the Blueprint event graph."""
+        from unreal_mcp_server import get_unreal_connection
+        try:
+            unreal = get_unreal_connection()
+            if not unreal:
+                return {"success": False, "message": "Failed to connect to Unreal Engine"}
+            response = unreal.send_command("add_branch_node", {
+                "blueprint_name": blueprint_name,
+                "node_position": node_position
+            })
+            return response or {"success": False, "message": "No response"}
+        except Exception as e:
+            logger.error(f"Error adding branch node: {e}")
+            return {"success": False, "message": str(e)}
     
     @mcp.tool()
     def add_blueprint_get_self_component_reference(

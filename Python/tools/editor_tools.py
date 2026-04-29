@@ -366,4 +366,230 @@ def register_editor_tools(mcp: FastMCP):
             logger.error(error_msg)
             return {"success": False, "message": error_msg}
 
+    # ===== Play In Editor =====
+
+    @mcp.tool()
+    def start_play_in_editor(
+        ctx: Context,
+        mobile_preview: bool = False,
+        simulate: bool = False
+    ) -> Dict[str, Any]:
+        """Start a Play In Editor session.
+
+        Args:
+            mobile_preview: If True, starts in mobile preview mode.
+            simulate: If True, runs Simulate-In-Editor instead of full PIE.
+        """
+        from unreal_mcp_server import get_unreal_connection
+        try:
+            unreal = get_unreal_connection()
+            if not unreal:
+                return {"success": False, "message": "Failed to connect to Unreal Engine"}
+            response = unreal.send_command("start_play_in_editor", {
+                "mobile_preview": mobile_preview,
+                "simulate": simulate
+            })
+            return response or {"success": False, "message": "No response"}
+        except Exception as e:
+            logger.error(f"Error starting PIE: {e}")
+            return {"success": False, "message": str(e)}
+
+    @mcp.tool()
+    def stop_play_in_editor(ctx: Context) -> Dict[str, Any]:
+        """Stop any running Play In Editor session."""
+        from unreal_mcp_server import get_unreal_connection
+        try:
+            unreal = get_unreal_connection()
+            if not unreal:
+                return {"success": False, "message": "Failed to connect to Unreal Engine"}
+            response = unreal.send_command("stop_play_in_editor", {})
+            return response or {"success": False, "message": "No response"}
+        except Exception as e:
+            logger.error(f"Error stopping PIE: {e}")
+            return {"success": False, "message": str(e)}
+
+    @mcp.tool()
+    def get_play_in_editor_status(ctx: Context) -> Dict[str, Any]:
+        """Return whether a PIE session is currently running."""
+        from unreal_mcp_server import get_unreal_connection
+        try:
+            unreal = get_unreal_connection()
+            if not unreal:
+                return {"success": False, "message": "Failed to connect to Unreal Engine"}
+            response = unreal.send_command("get_play_in_editor_status", {})
+            return response or {"success": False, "message": "No response"}
+        except Exception as e:
+            logger.error(f"Error getting PIE status: {e}")
+            return {"success": False, "message": str(e)}
+
+    # ===== Batch actor operations =====
+
+    @mcp.tool()
+    def get_actors_by_tag(ctx: Context, tag: str) -> Dict[str, Any]:
+        """Return all actors that have a given tag."""
+        from unreal_mcp_server import get_unreal_connection
+        try:
+            unreal = get_unreal_connection()
+            if not unreal:
+                return {"success": False, "message": "Failed to connect to Unreal Engine"}
+            response = unreal.send_command("get_actors_by_tag", {"tag": tag})
+            return response or {"success": False, "message": "No response"}
+        except Exception as e:
+            logger.error(f"Error getting actors by tag: {e}")
+            return {"success": False, "message": str(e)}
+
+    @mcp.tool()
+    def set_actors_transform_by_tag(
+        ctx: Context,
+        tag: str,
+        location: List[float] = None,
+        rotation: List[float] = None,
+        scale: List[float] = None,
+        relative: bool = False
+    ) -> Dict[str, Any]:
+        """Apply a transform to every actor with the given tag.
+
+        Args:
+            location: [X, Y, Z] (optional).
+            rotation: [Pitch, Yaw, Roll] (optional).
+            scale: [X, Y, Z] (optional).
+            relative: If True, add to current transform instead of overwriting.
+        """
+        from unreal_mcp_server import get_unreal_connection
+        try:
+            unreal = get_unreal_connection()
+            if not unreal:
+                return {"success": False, "message": "Failed to connect to Unreal Engine"}
+            params: Dict[str, Any] = {"tag": tag, "relative": relative}
+            if location is not None: params["location"] = location
+            if rotation is not None: params["rotation"] = rotation
+            if scale is not None:    params["scale"] = scale
+            response = unreal.send_command("set_actors_transform_by_tag", params)
+            return response or {"success": False, "message": "No response"}
+        except Exception as e:
+            logger.error(f"Error setting transforms by tag: {e}")
+            return {"success": False, "message": str(e)}
+
+    @mcp.tool()
+    def add_tag_to_actors_by_name(ctx: Context, pattern: str, tag: str) -> Dict[str, Any]:
+        """Add a tag to every actor whose name contains the given pattern."""
+        from unreal_mcp_server import get_unreal_connection
+        try:
+            unreal = get_unreal_connection()
+            if not unreal:
+                return {"success": False, "message": "Failed to connect to Unreal Engine"}
+            response = unreal.send_command("add_tag_to_actors_by_name", {
+                "pattern": pattern, "tag": tag
+            })
+            return response or {"success": False, "message": "No response"}
+        except Exception as e:
+            logger.error(f"Error adding tag: {e}")
+            return {"success": False, "message": str(e)}
+
+    @mcp.tool()
+    def set_actor_property_batch(
+        ctx: Context,
+        actor_names: List[str],
+        property_name: str,
+        property_value: Any
+    ) -> Dict[str, Any]:
+        """Set a property on a batch of actors. Returns per-actor success/error."""
+        from unreal_mcp_server import get_unreal_connection
+        try:
+            unreal = get_unreal_connection()
+            if not unreal:
+                return {"success": False, "message": "Failed to connect to Unreal Engine"}
+            response = unreal.send_command("set_actor_property_batch", {
+                "actor_names": actor_names,
+                "property_name": property_name,
+                "property_value": property_value
+            })
+            return response or {"success": False, "message": "No response"}
+        except Exception as e:
+            logger.error(f"Error in batch property set: {e}")
+            return {"success": False, "message": str(e)}
+
+    @mcp.tool()
+    def select_actors_by_tag(
+        ctx: Context,
+        tag: str,
+        add_to_selection: bool = False
+    ) -> Dict[str, Any]:
+        """Select all actors with a given tag in the editor.
+
+        Args:
+            add_to_selection: If True, add to existing selection instead of replacing.
+        """
+        from unreal_mcp_server import get_unreal_connection
+        try:
+            unreal = get_unreal_connection()
+            if not unreal:
+                return {"success": False, "message": "Failed to connect to Unreal Engine"}
+            response = unreal.send_command("select_actors_by_tag", {
+                "tag": tag, "add_to_selection": add_to_selection
+            })
+            return response or {"success": False, "message": "No response"}
+        except Exception as e:
+            logger.error(f"Error selecting by tag: {e}")
+            return {"success": False, "message": str(e)}
+
+    # ===== Viewport display mode =====
+
+    @mcp.tool()
+    def set_viewport_display_mode(ctx: Context, mode: str) -> Dict[str, Any]:
+        """Set the active viewport's display mode.
+
+        Args:
+            mode: One of "Lit", "Unlit", "Wireframe", "DetailLighting",
+                  "LightingOnly", "ReflectionsOnly", "PathTracing".
+        """
+        from unreal_mcp_server import get_unreal_connection
+        try:
+            unreal = get_unreal_connection()
+            if not unreal:
+                return {"success": False, "message": "Failed to connect to Unreal Engine"}
+            response = unreal.send_command("set_viewport_display_mode", {"mode": mode})
+            return response or {"success": False, "message": "No response"}
+        except Exception as e:
+            logger.error(f"Error setting display mode: {e}")
+            return {"success": False, "message": str(e)}
+
+    @mcp.tool()
+    def get_viewport_display_mode(ctx: Context) -> Dict[str, Any]:
+        """Get the active viewport's current display mode."""
+        from unreal_mcp_server import get_unreal_connection
+        try:
+            unreal = get_unreal_connection()
+            if not unreal:
+                return {"success": False, "message": "Failed to connect to Unreal Engine"}
+            response = unreal.send_command("get_viewport_display_mode", {})
+            return response or {"success": False, "message": "No response"}
+        except Exception as e:
+            logger.error(f"Error getting display mode: {e}")
+            return {"success": False, "message": str(e)}
+
+    @mcp.tool()
+    def set_viewport_show_flags(
+        ctx: Context,
+        flag: str,
+        enabled: bool = True
+    ) -> Dict[str, Any]:
+        """Toggle a viewport show flag.
+
+        Args:
+            flag: One of "Grid", "Stats", "Bounds", "Collision", "Navigation", "Bloom".
+        """
+        from unreal_mcp_server import get_unreal_connection
+        try:
+            unreal = get_unreal_connection()
+            if not unreal:
+                return {"success": False, "message": "Failed to connect to Unreal Engine"}
+            response = unreal.send_command("set_viewport_show_flags", {
+                "flag": flag, "enabled": enabled
+            })
+            return response or {"success": False, "message": "No response"}
+        except Exception as e:
+            logger.error(f"Error setting show flag: {e}")
+            return {"success": False, "message": str(e)}
+
     logger.info("Editor tools registered successfully")

@@ -31,4 +31,21 @@ private:
     // Editor viewport commands
     TSharedPtr<FJsonObject> HandleFocusViewport(const TSharedPtr<FJsonObject>& Params);
     TSharedPtr<FJsonObject> HandleTakeScreenshot(const TSharedPtr<FJsonObject>& Params);
-}; 
+
+    // Play In Editor commands
+    TSharedPtr<FJsonObject> HandleStartPlayInEditor(const TSharedPtr<FJsonObject>& Params);
+    TSharedPtr<FJsonObject> HandleStopPlayInEditor(const TSharedPtr<FJsonObject>& Params);
+    TSharedPtr<FJsonObject> HandleGetPlayInEditorStatus(const TSharedPtr<FJsonObject>& Params);
+
+    // Batch actor commands
+    TSharedPtr<FJsonObject> HandleGetActorsByTag(const TSharedPtr<FJsonObject>& Params);
+    TSharedPtr<FJsonObject> HandleSetActorsTransformByTag(const TSharedPtr<FJsonObject>& Params);
+    TSharedPtr<FJsonObject> HandleAddTagToActorsByName(const TSharedPtr<FJsonObject>& Params);
+    TSharedPtr<FJsonObject> HandleSetActorPropertyBatch(const TSharedPtr<FJsonObject>& Params);
+    TSharedPtr<FJsonObject> HandleSelectActorsByTag(const TSharedPtr<FJsonObject>& Params);
+
+    // Viewport display mode commands
+    TSharedPtr<FJsonObject> HandleSetViewportDisplayMode(const TSharedPtr<FJsonObject>& Params);
+    TSharedPtr<FJsonObject> HandleGetViewportDisplayMode(const TSharedPtr<FJsonObject>& Params);
+    TSharedPtr<FJsonObject> HandleSetViewportShowFlags(const TSharedPtr<FJsonObject>& Params);
+};

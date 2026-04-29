@@ -51,10 +51,14 @@ public class UnrealMCP : ModuleRules
 				"KismetCompiler",
 				"BlueprintGraph",
 				"Projects",
-				"AssetRegistry"
+				"AssetRegistry",
+				"AssetTools",
+				"LevelSequence",
+				"MovieScene",
+				"MovieSceneTracks"
 			}
 		);
-		
+
 		if (Target.bBuildEditor == true)
 		{
 			PrivateDependencyModuleNames.AddRange(
@@ -63,7 +67,10 @@ public class UnrealMCP : ModuleRules
 					"PropertyEditor",      // For widget property editing
 					"ToolMenus",           // For editor UI
 					"BlueprintEditorLibrary", // For Blueprint utilities
-					"UMGEditor"           // For WidgetBlueprint.h and other UMG editor functionality
+					"UMGEditor",           // For WidgetBlueprint.h and other UMG editor functionality
+					"MaterialEditor",       // For UMaterialEditingLibrary
+					"Sequencer",            // For sequencer editor utilities
+					"LevelEditor"           // For level editor viewport client
 				}
 			);
 		}

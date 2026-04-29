@@ -69,6 +69,10 @@ UUnrealMCPBridge::UUnrealMCPBridge()
     BlueprintNodeCommands = MakeShared<FUnrealMCPBlueprintNodeCommands>();
     ProjectCommands = MakeShared<FUnrealMCPProjectCommands>();
     UMGCommands = MakeShared<FUnrealMCPUMGCommands>();
+    MaterialCommands = MakeShared<FUnrealMCPMaterialCommands>();
+    LevelCommands = MakeShared<FUnrealMCPLevelCommands>();
+    AssetCommands = MakeShared<FUnrealMCPAssetCommands>();
+    SequencerCommands = MakeShared<FUnrealMCPSequencerCommands>();
 }
 
 UUnrealMCPBridge::~UUnrealMCPBridge()
@@ -223,18 +227,29 @@ FString UUnrealMCPBridge::ExecuteCommand(const FString& CommandType, const TShar
                 ResultJson = MakeShareable(new FJsonObject);
                 ResultJson->SetStringField(TEXT("message"), TEXT("pong"));
             }
-            // Editor Commands (including actor manipulation)
-            else if (CommandType == TEXT("get_actors_in_level") || 
+            // Editor Commands (including actor manipulation, PIE, batch ops, viewport modes)
+            else if (CommandType == TEXT("get_actors_in_level") ||
                      CommandType == TEXT("find_actors_by_name") ||
                      CommandType == TEXT("spawn_actor") ||
                      CommandType == TEXT("create_actor") ||
-                     CommandType == TEXT("delete_actor") || 
+                     CommandType == TEXT("delete_actor") ||
                      CommandType == TEXT("set_actor_transform") ||
                      CommandType == TEXT("get_actor_properties") ||
                      CommandType == TEXT("set_actor_property") ||
                      CommandType == TEXT("spawn_blueprint_actor") ||
-                     CommandType == TEXT("focus_viewport") || 
-                     CommandType == TEXT("take_screenshot"))
+                     CommandType == TEXT("focus_viewport") ||
+                     CommandType == TEXT("take_screenshot") ||
+                     CommandType == TEXT("start_play_in_editor") ||
+                     CommandType == TEXT("stop_play_in_editor") ||
+                     CommandType == TEXT("get_play_in_editor_status") ||
+                     CommandType == TEXT("get_actors_by_tag") ||
+                     CommandType == TEXT("set_actors_transform_by_tag") ||
+                     CommandType == TEXT("add_tag_to_actors_by_name") ||
+                     CommandType == TEXT("set_actor_property_batch") ||
+                     CommandType == TEXT("select_actors_by_tag") ||
+                     CommandType == TEXT("set_viewport_display_mode") ||
+                     CommandType == TEXT("get_viewport_display_mode") ||
+                     CommandType == TEXT("set_viewport_show_flags"))
             {
                 ResultJson = EditorCommands->HandleCommand(CommandType, Params);
             }
@@ -251,7 +266,7 @@ FString UUnrealMCPBridge::ExecuteCommand(const FString& CommandType, const TShar
                 ResultJson = BlueprintCommands->HandleCommand(CommandType, Params);
             }
             // Blueprint Node Commands
-            else if (CommandType == TEXT("connect_blueprint_nodes") || 
+            else if (CommandType == TEXT("connect_blueprint_nodes") ||
                      CommandType == TEXT("add_blueprint_get_self_component_reference") ||
                      CommandType == TEXT("add_blueprint_self_reference") ||
                      CommandType == TEXT("find_blueprint_nodes") ||
@@ -259,7 +274,11 @@ FString UUnrealMCPBridge::ExecuteCommand(const FString& CommandType, const TShar
                      CommandType == TEXT("add_blueprint_input_action_node") ||
                      CommandType == TEXT("add_blueprint_function_node") ||
                      CommandType == TEXT("add_blueprint_get_component_node") ||
-                     CommandType == TEXT("add_blueprint_variable"))
+                     CommandType == TEXT("add_blueprint_variable") ||
+                     CommandType == TEXT("get_blueprint_variable") ||
+                     CommandType == TEXT("add_blueprint_variable_get_node") ||
+                     CommandType == TEXT("add_blueprint_variable_set_node") ||
+                     CommandType == TEXT("add_branch_node"))
             {
                 ResultJson = BlueprintNodeCommands->HandleCommand(CommandType, Params);
             }
@@ -277,6 +296,41 @@ FString UUnrealMCPBridge::ExecuteCommand(const FString& CommandType, const TShar
                      CommandType == TEXT("add_widget_to_viewport"))
             {
                 ResultJson = UMGCommands->HandleCommand(CommandType, Params);
+            }
+            // Material Commands
+            else if (CommandType == TEXT("create_material") ||
+                     CommandType == TEXT("create_material_instance") ||
+                     CommandType == TEXT("set_material_scalar_parameter") ||
+                     CommandType == TEXT("set_material_vector_parameter") ||
+                     CommandType == TEXT("apply_material_to_actor"))
+            {
+                ResultJson = MaterialCommands->HandleCommand(CommandType, Params);
+            }
+            // Level Commands
+            else if (CommandType == TEXT("save_current_level") ||
+                     CommandType == TEXT("open_level") ||
+                     CommandType == TEXT("get_current_level_name") ||
+                     CommandType == TEXT("create_new_level"))
+            {
+                ResultJson = LevelCommands->HandleCommand(CommandType, Params);
+            }
+            // Asset Commands
+            else if (CommandType == TEXT("list_assets") ||
+                     CommandType == TEXT("duplicate_asset") ||
+                     CommandType == TEXT("move_asset") ||
+                     CommandType == TEXT("delete_asset") ||
+                     CommandType == TEXT("get_asset_info"))
+            {
+                ResultJson = AssetCommands->HandleCommand(CommandType, Params);
+            }
+            // Sequencer Commands
+            else if (CommandType == TEXT("create_level_sequence") ||
+                     CommandType == TEXT("add_actor_to_sequence") ||
+                     CommandType == TEXT("add_transform_track") ||
+                     CommandType == TEXT("add_transform_keyframe") ||
+                     CommandType == TEXT("get_sequences_in_level"))
+            {
+                ResultJson = SequencerCommands->HandleCommand(CommandType, Params);
             }
             else
             {

@@ -20,6 +20,10 @@
 #include "Subsystems/EditorActorSubsystem.h"
 #include "Engine/Blueprint.h"
 #include "Engine/BlueprintGeneratedClass.h"
+#include "EngineUtils.h"
+#include "Editor/UnrealEdEngine.h"
+#include "UnrealEdGlobals.h"
+#include "ShowFlags.h"
 
 FUnrealMCPEditorCommands::FUnrealMCPEditorCommands()
 {
@@ -74,7 +78,54 @@ TSharedPtr<FJsonObject> FUnrealMCPEditorCommands::HandleCommand(const FString& C
     {
         return HandleTakeScreenshot(Params);
     }
-    
+    // Play In Editor
+    else if (CommandType == TEXT("start_play_in_editor"))
+    {
+        return HandleStartPlayInEditor(Params);
+    }
+    else if (CommandType == TEXT("stop_play_in_editor"))
+    {
+        return HandleStopPlayInEditor(Params);
+    }
+    else if (CommandType == TEXT("get_play_in_editor_status"))
+    {
+        return HandleGetPlayInEditorStatus(Params);
+    }
+    // Batch actor operations
+    else if (CommandType == TEXT("get_actors_by_tag"))
+    {
+        return HandleGetActorsByTag(Params);
+    }
+    else if (CommandType == TEXT("set_actors_transform_by_tag"))
+    {
+        return HandleSetActorsTransformByTag(Params);
+    }
+    else if (CommandType == TEXT("add_tag_to_actors_by_name"))
+    {
+        return HandleAddTagToActorsByName(Params);
+    }
+    else if (CommandType == TEXT("set_actor_property_batch"))
+    {
+        return HandleSetActorPropertyBatch(Params);
+    }
+    else if (CommandType == TEXT("select_actors_by_tag"))
+    {
+        return HandleSelectActorsByTag(Params);
+    }
+    // Viewport display mode
+    else if (CommandType == TEXT("set_viewport_display_mode"))
+    {
+        return HandleSetViewportDisplayMode(Params);
+    }
+    else if (CommandType == TEXT("get_viewport_display_mode"))
+    {
+        return HandleGetViewportDisplayMode(Params);
+    }
+    else if (CommandType == TEXT("set_viewport_show_flags"))
+    {
+        return HandleSetViewportShowFlags(Params);
+    }
+
     return FUnrealMCPCommonUtils::CreateErrorResponse(FString::Printf(TEXT("Unknown editor command: %s"), *CommandType));
 }
 
@@ -597,4 +648,444 @@ TSharedPtr<FJsonObject> FUnrealMCPEditorCommands::HandleTakeScreenshot(const TSh
     }
     
     return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Failed to take screenshot"));
+}
+
+// ===== Play In Editor =====
+
+TSharedPtr<FJsonObject> FUnrealMCPEditorCommands::HandleStartPlayInEditor(const TSharedPtr<FJsonObject>& Params)
+{
+    if (!GEditor)
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("GEditor unavailable"));
+    }
+
+    if (GEditor->PlayWorld != nullptr)
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Play session already running"));
+    }
+
+    bool bMobilePreview = false;
+    if (Params->HasField(TEXT("mobile_preview")))
+    {
+        bMobilePreview = Params->GetBoolField(TEXT("mobile_preview"));
+    }
+    bool bSimulate = false;
+    if (Params->HasField(TEXT("simulate")))
+    {
+        bSimulate = Params->GetBoolField(TEXT("simulate"));
+    }
+
+    FRequestPlaySessionParams PlayParams;
+    PlayParams.WorldType = bSimulate ? EPlaySessionWorldType::SimulateInEditor : EPlaySessionWorldType::PlayInEditor;
+    if (bMobilePreview)
+    {
+        PlayParams.SessionPreviewTypeOverride = EPlaySessionPreviewType::MobilePreview;
+    }
+    GEditor->RequestPlaySession(PlayParams);
+
+    TSharedPtr<FJsonObject> Result = MakeShared<FJsonObject>();
+    Result->SetBoolField(TEXT("requested"), true);
+    Result->SetBoolField(TEXT("simulate"), bSimulate);
+    Result->SetBoolField(TEXT("mobile_preview"), bMobilePreview);
+    return Result;
+}
+
+TSharedPtr<FJsonObject> FUnrealMCPEditorCommands::HandleStopPlayInEditor(const TSharedPtr<FJsonObject>& Params)
+{
+    if (!GEditor)
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("GEditor unavailable"));
+    }
+
+    GEditor->RequestEndPlayMap();
+
+    TSharedPtr<FJsonObject> Result = MakeShared<FJsonObject>();
+    Result->SetBoolField(TEXT("stopped"), true);
+    return Result;
+}
+
+TSharedPtr<FJsonObject> FUnrealMCPEditorCommands::HandleGetPlayInEditorStatus(const TSharedPtr<FJsonObject>& Params)
+{
+    TSharedPtr<FJsonObject> Result = MakeShared<FJsonObject>();
+    Result->SetBoolField(TEXT("is_playing"), GEditor && GEditor->PlayWorld != nullptr);
+    return Result;
+}
+
+// ===== Batch actor operations =====
+
+TSharedPtr<FJsonObject> FUnrealMCPEditorCommands::HandleGetActorsByTag(const TSharedPtr<FJsonObject>& Params)
+{
+    FString Tag;
+    if (!Params->TryGetStringField(TEXT("tag"), Tag))
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Missing 'tag' parameter"));
+    }
+
+    UWorld* World = GEditor ? GEditor->GetEditorWorldContext().World() : GWorld;
+    if (!World)
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("No active world"));
+    }
+
+    TArray<AActor*> Actors;
+    UGameplayStatics::GetAllActorsWithTag(World, FName(*Tag), Actors);
+
+    TArray<TSharedPtr<FJsonValue>> ActorArray;
+    for (AActor* Actor : Actors)
+    {
+        if (Actor)
+        {
+            ActorArray.Add(FUnrealMCPCommonUtils::ActorToJson(Actor));
+        }
+    }
+
+    TSharedPtr<FJsonObject> Result = MakeShared<FJsonObject>();
+    Result->SetArrayField(TEXT("actors"), ActorArray);
+    Result->SetNumberField(TEXT("count"), ActorArray.Num());
+    return Result;
+}
+
+TSharedPtr<FJsonObject> FUnrealMCPEditorCommands::HandleSetActorsTransformByTag(const TSharedPtr<FJsonObject>& Params)
+{
+    FString Tag;
+    if (!Params->TryGetStringField(TEXT("tag"), Tag))
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Missing 'tag' parameter"));
+    }
+
+    bool bRelative = false;
+    if (Params->HasField(TEXT("relative")))
+    {
+        bRelative = Params->GetBoolField(TEXT("relative"));
+    }
+
+    const bool bHasLocation = Params->HasField(TEXT("location"));
+    const bool bHasRotation = Params->HasField(TEXT("rotation"));
+    const bool bHasScale = Params->HasField(TEXT("scale"));
+
+    FVector Location = bHasLocation ? FUnrealMCPCommonUtils::GetVectorFromJson(Params, TEXT("location")) : FVector::ZeroVector;
+    FRotator Rotation = bHasRotation ? FUnrealMCPCommonUtils::GetRotatorFromJson(Params, TEXT("rotation")) : FRotator::ZeroRotator;
+    FVector Scale = bHasScale ? FUnrealMCPCommonUtils::GetVectorFromJson(Params, TEXT("scale")) : FVector::OneVector;
+
+    UWorld* World = GEditor ? GEditor->GetEditorWorldContext().World() : GWorld;
+    if (!World)
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("No active world"));
+    }
+
+    TArray<AActor*> Actors;
+    UGameplayStatics::GetAllActorsWithTag(World, FName(*Tag), Actors);
+
+    int32 Count = 0;
+    for (AActor* Actor : Actors)
+    {
+        if (!Actor) continue;
+        if (bRelative)
+        {
+            if (bHasLocation) Actor->SetActorLocation(Actor->GetActorLocation() + Location);
+            if (bHasRotation) Actor->SetActorRotation(Actor->GetActorRotation() + Rotation);
+            if (bHasScale)    Actor->SetActorScale3D(Actor->GetActorScale3D() * Scale);
+        }
+        else
+        {
+            if (bHasLocation) Actor->SetActorLocation(Location);
+            if (bHasRotation) Actor->SetActorRotation(Rotation);
+            if (bHasScale)    Actor->SetActorScale3D(Scale);
+        }
+        ++Count;
+    }
+
+    TSharedPtr<FJsonObject> Result = MakeShared<FJsonObject>();
+    Result->SetNumberField(TEXT("count"), Count);
+    Result->SetStringField(TEXT("tag"), Tag);
+    return Result;
+}
+
+TSharedPtr<FJsonObject> FUnrealMCPEditorCommands::HandleAddTagToActorsByName(const TSharedPtr<FJsonObject>& Params)
+{
+    FString Pattern;
+    if (!Params->TryGetStringField(TEXT("pattern"), Pattern))
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Missing 'pattern' parameter"));
+    }
+    FString Tag;
+    if (!Params->TryGetStringField(TEXT("tag"), Tag))
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Missing 'tag' parameter"));
+    }
+
+    UWorld* World = GEditor ? GEditor->GetEditorWorldContext().World() : GWorld;
+    if (!World)
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("No active world"));
+    }
+
+    int32 Count = 0;
+    for (TActorIterator<AActor> It(World); It; ++It)
+    {
+        AActor* Actor = *It;
+        if (Actor && (Actor->GetName().Contains(Pattern) || Actor->GetActorLabel().Contains(Pattern)))
+        {
+            Actor->Tags.AddUnique(FName(*Tag));
+            ++Count;
+        }
+    }
+
+    TSharedPtr<FJsonObject> Result = MakeShared<FJsonObject>();
+    Result->SetNumberField(TEXT("count"), Count);
+    Result->SetStringField(TEXT("pattern"), Pattern);
+    Result->SetStringField(TEXT("tag"), Tag);
+    return Result;
+}
+
+TSharedPtr<FJsonObject> FUnrealMCPEditorCommands::HandleSetActorPropertyBatch(const TSharedPtr<FJsonObject>& Params)
+{
+    const TArray<TSharedPtr<FJsonValue>>* NamesArrayPtr = nullptr;
+    if (!Params->TryGetArrayField(TEXT("actor_names"), NamesArrayPtr))
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Missing 'actor_names' array"));
+    }
+
+    FString PropertyName;
+    if (!Params->TryGetStringField(TEXT("property_name"), PropertyName))
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Missing 'property_name' parameter"));
+    }
+
+    TSharedPtr<FJsonValue> ValueField = Params->TryGetField(TEXT("property_value"));
+    if (!ValueField.IsValid())
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Missing 'property_value' parameter"));
+    }
+
+    UWorld* World = GEditor ? GEditor->GetEditorWorldContext().World() : GWorld;
+    if (!World)
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("No active world"));
+    }
+
+    TArray<TSharedPtr<FJsonValue>> Results;
+    for (const TSharedPtr<FJsonValue>& NameValue : *NamesArrayPtr)
+    {
+        const FString Name = NameValue->AsString();
+
+        TSharedPtr<FJsonObject> Entry = MakeShared<FJsonObject>();
+        Entry->SetStringField(TEXT("actor_name"), Name);
+
+        AActor* Found = nullptr;
+        for (TActorIterator<AActor> It(World); It; ++It)
+        {
+            if (It->GetName() == Name || It->GetActorLabel() == Name)
+            {
+                Found = *It;
+                break;
+            }
+        }
+
+        if (!Found)
+        {
+            Entry->SetBoolField(TEXT("success"), false);
+            Entry->SetStringField(TEXT("error"), TEXT("Actor not found"));
+        }
+        else
+        {
+            FString ErrorMessage;
+            const bool bOk = FUnrealMCPCommonUtils::SetObjectProperty(Found, PropertyName, ValueField, ErrorMessage);
+            Entry->SetBoolField(TEXT("success"), bOk);
+            if (!bOk)
+            {
+                Entry->SetStringField(TEXT("error"), ErrorMessage);
+            }
+        }
+        Results.Add(MakeShared<FJsonValueObject>(Entry));
+    }
+
+    TSharedPtr<FJsonObject> Result = MakeShared<FJsonObject>();
+    Result->SetArrayField(TEXT("results"), Results);
+    Result->SetNumberField(TEXT("count"), Results.Num());
+    return Result;
+}
+
+TSharedPtr<FJsonObject> FUnrealMCPEditorCommands::HandleSelectActorsByTag(const TSharedPtr<FJsonObject>& Params)
+{
+    FString Tag;
+    if (!Params->TryGetStringField(TEXT("tag"), Tag))
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Missing 'tag' parameter"));
+    }
+
+    bool bAddToSelection = false;
+    if (Params->HasField(TEXT("add_to_selection")))
+    {
+        bAddToSelection = Params->GetBoolField(TEXT("add_to_selection"));
+    }
+
+    UWorld* World = GEditor ? GEditor->GetEditorWorldContext().World() : GWorld;
+    if (!World || !GEditor)
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Editor unavailable"));
+    }
+
+    if (!bAddToSelection)
+    {
+        GEditor->SelectNone(true, true, false);
+    }
+
+    TArray<AActor*> Actors;
+    UGameplayStatics::GetAllActorsWithTag(World, FName(*Tag), Actors);
+
+    int32 Count = 0;
+    for (AActor* Actor : Actors)
+    {
+        if (Actor)
+        {
+            GEditor->SelectActor(Actor, true, true);
+            ++Count;
+        }
+    }
+
+    TSharedPtr<FJsonObject> Result = MakeShared<FJsonObject>();
+    Result->SetNumberField(TEXT("selected_count"), Count);
+    Result->SetStringField(TEXT("tag"), Tag);
+    return Result;
+}
+
+// ===== Viewport display mode =====
+
+namespace
+{
+    FLevelEditorViewportClient* GetActiveLevelViewportClient()
+    {
+        if (!GEditor) return nullptr;
+        for (FLevelEditorViewportClient* VC : GEditor->GetLevelViewportClients())
+        {
+            if (VC && VC->IsPerspective())
+            {
+                return VC;
+            }
+        }
+        if (GEditor->GetLevelViewportClients().Num() > 0)
+        {
+            return GEditor->GetLevelViewportClients()[0];
+        }
+        return nullptr;
+    }
+
+    bool ParseViewMode(const FString& Mode, EViewModeIndex& OutIndex)
+    {
+        static const TMap<FString, EViewModeIndex> Map = {
+            { TEXT("Lit"),               VMI_Lit },
+            { TEXT("Unlit"),             VMI_Unlit },
+            { TEXT("Wireframe"),         VMI_BrushWireframe },
+            { TEXT("DetailLighting"),    VMI_Lit_DetailLighting },
+            { TEXT("LightingOnly"),      VMI_LightingOnly },
+            { TEXT("ReflectionsOnly"),   VMI_ReflectionOverride },
+            { TEXT("PathTracing"),       VMI_PathTracing }
+        };
+        if (const EViewModeIndex* Found = Map.Find(Mode))
+        {
+            OutIndex = *Found;
+            return true;
+        }
+        return false;
+    }
+
+    FString ViewModeToString(EViewModeIndex Index)
+    {
+        switch (Index)
+        {
+            case VMI_Lit: return TEXT("Lit");
+            case VMI_Unlit: return TEXT("Unlit");
+            case VMI_BrushWireframe:
+            case VMI_Wireframe: return TEXT("Wireframe");
+            case VMI_Lit_DetailLighting: return TEXT("DetailLighting");
+            case VMI_LightingOnly: return TEXT("LightingOnly");
+            case VMI_ReflectionOverride: return TEXT("ReflectionsOnly");
+            case VMI_PathTracing: return TEXT("PathTracing");
+            default: return FString::Printf(TEXT("Unknown(%d)"), (int32)Index);
+        }
+    }
+}
+
+TSharedPtr<FJsonObject> FUnrealMCPEditorCommands::HandleSetViewportDisplayMode(const TSharedPtr<FJsonObject>& Params)
+{
+    FString Mode;
+    if (!Params->TryGetStringField(TEXT("mode"), Mode))
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Missing 'mode' parameter"));
+    }
+
+    EViewModeIndex Index;
+    if (!ParseViewMode(Mode, Index))
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(FString::Printf(TEXT("Unknown view mode: %s"), *Mode));
+    }
+
+    FLevelEditorViewportClient* VC = GetActiveLevelViewportClient();
+    if (!VC)
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("No active viewport client"));
+    }
+
+    VC->SetViewMode(Index);
+    VC->Invalidate(true, true);
+
+    TSharedPtr<FJsonObject> Result = MakeShared<FJsonObject>();
+    Result->SetStringField(TEXT("mode"), Mode);
+    return Result;
+}
+
+TSharedPtr<FJsonObject> FUnrealMCPEditorCommands::HandleGetViewportDisplayMode(const TSharedPtr<FJsonObject>& Params)
+{
+    FLevelEditorViewportClient* VC = GetActiveLevelViewportClient();
+    if (!VC)
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("No active viewport client"));
+    }
+
+    const EViewModeIndex Index = VC->GetViewMode();
+    TSharedPtr<FJsonObject> Result = MakeShared<FJsonObject>();
+    Result->SetStringField(TEXT("mode"), ViewModeToString(Index));
+    Result->SetNumberField(TEXT("mode_index"), (int32)Index);
+    return Result;
+}
+
+TSharedPtr<FJsonObject> FUnrealMCPEditorCommands::HandleSetViewportShowFlags(const TSharedPtr<FJsonObject>& Params)
+{
+    FString Flag;
+    if (!Params->TryGetStringField(TEXT("flag"), Flag))
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Missing 'flag' parameter"));
+    }
+
+    bool bEnabled = true;
+    if (Params->HasField(TEXT("enabled")))
+    {
+        bEnabled = Params->GetBoolField(TEXT("enabled"));
+    }
+
+    FLevelEditorViewportClient* VC = GetActiveLevelViewportClient();
+    if (!VC)
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("No active viewport client"));
+    }
+
+    FEngineShowFlags& Flags = VC->EngineShowFlags;
+    if      (Flag.Equals(TEXT("Grid"),       ESearchCase::IgnoreCase)) Flags.SetGrid(bEnabled);
+    else if (Flag.Equals(TEXT("Stats"),      ESearchCase::IgnoreCase)) Flags.SetStatsHUD(bEnabled);
+    else if (Flag.Equals(TEXT("Bounds"),     ESearchCase::IgnoreCase)) Flags.SetBounds(bEnabled);
+    else if (Flag.Equals(TEXT("Collision"),  ESearchCase::IgnoreCase)) Flags.SetCollision(bEnabled);
+    else if (Flag.Equals(TEXT("Navigation"), ESearchCase::IgnoreCase)) Flags.SetNavigation(bEnabled);
+    else if (Flag.Equals(TEXT("Bloom"),      ESearchCase::IgnoreCase)) Flags.SetBloom(bEnabled);
+    else
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(FString::Printf(TEXT("Unsupported flag: %s"), *Flag));
+    }
+
+    VC->Invalidate(true, true);
+
+    TSharedPtr<FJsonObject> Result = MakeShared<FJsonObject>();
+    Result->SetStringField(TEXT("flag"), Flag);
+    Result->SetBoolField(TEXT("enabled"), bEnabled);
+    return Result;
 } 
