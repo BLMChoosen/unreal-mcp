@@ -20,4 +20,6 @@ private:
     TSharedPtr<FJsonObject> HandleAddTransformTrack(const TSharedPtr<FJsonObject>& Params);
     TSharedPtr<FJsonObject> HandleAddTransformKeyframe(const TSharedPtr<FJsonObject>& Params);
     TSharedPtr<FJsonObject> HandleGetSequencesInLevel(const TSharedPtr<FJsonObject>& Params);
+    TSharedPtr<FJsonObject> HandleAddCameraCutTrack(const TSharedPtr<FJsonObject>& Params);
+    TSharedPtr<FJsonObject> HandleAddCameraCut(const TSharedPtr<FJsonObject>& Params);
 };

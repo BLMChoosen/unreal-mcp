@@ -128,4 +128,74 @@ def register_sequencer_tools(mcp: FastMCP):
             logger.error(f"Error listing sequences: {e}")
             return {"success": False, "message": str(e)}
 
+    @mcp.tool()
+    def add_camera_cut_track(
+        ctx: Context,
+        sequence_name: str
+    ) -> Dict[str, Any]:
+        """
+        Add a Camera Cut master track to a Level Sequence.
+
+        Only one camera cut track is allowed per sequence. If one already exists
+        it is returned without error.
+
+        Args:
+            sequence_name: Name of the target Level Sequence asset
+
+        Returns:
+            Response with sequence_name and camera_cut_track_added flag
+        """
+        from unreal_mcp_server import get_unreal_connection
+        try:
+            unreal = get_unreal_connection()
+            if not unreal:
+                return {"success": False, "message": "Failed to connect to Unreal Engine"}
+            response = unreal.send_command("add_camera_cut_track", {
+                "sequence_name": sequence_name
+            })
+            return response or {"success": False, "message": "No response"}
+        except Exception as e:
+            logger.error(f"Error adding camera cut track: {e}")
+            return {"success": False, "message": str(e)}
+
+    @mcp.tool()
+    def add_camera_cut(
+        ctx: Context,
+        sequence_name: str,
+        camera_binding_id: str,
+        start_time: float = 0.0,
+        end_time: float = -1.0
+    ) -> Dict[str, Any]:
+        """
+        Add a Camera Cut section to a sequence's camera cut track.
+
+        The cut section links a camera actor binding to a time range. Use
+        add_actor_to_sequence first to get the camera_binding_id (GUID).
+
+        Args:
+            sequence_name: Name of the target Level Sequence asset
+            camera_binding_id: GUID string returned by add_actor_to_sequence for
+                               the camera actor
+            start_time: Start time in seconds (default 0)
+            end_time: End time in seconds; -1 means use the sequence end
+
+        Returns:
+            Response with sequence_name, camera_binding_id, start_time, end_time
+        """
+        from unreal_mcp_server import get_unreal_connection
+        try:
+            unreal = get_unreal_connection()
+            if not unreal:
+                return {"success": False, "message": "Failed to connect to Unreal Engine"}
+            response = unreal.send_command("add_camera_cut", {
+                "sequence_name": sequence_name,
+                "camera_binding_id": camera_binding_id,
+                "start_time": start_time,
+                "end_time": end_time
+            })
+            return response or {"success": False, "message": "No response"}
+        except Exception as e:
+            logger.error(f"Error adding camera cut: {e}")
+            return {"success": False, "message": str(e)}
+
     logger.info("Sequencer tools registered successfully")

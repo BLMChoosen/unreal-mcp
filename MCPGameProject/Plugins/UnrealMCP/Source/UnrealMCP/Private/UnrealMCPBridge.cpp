@@ -57,6 +57,8 @@
 #include "Commands/UnrealMCPProjectCommands.h"
 #include "Commands/UnrealMCPCommonUtils.h"
 #include "Commands/UnrealMCPUMGCommands.h"
+#include "Commands/UnrealMCPAICommands.h"
+#include "Commands/UnrealMCPDataCommands.h"
 
 // Default settings
 #define MCP_SERVER_HOST "127.0.0.1"
@@ -278,7 +280,15 @@ FString UUnrealMCPBridge::ExecuteCommand(const FString& CommandType, const TShar
                      CommandType == TEXT("get_blueprint_variable") ||
                      CommandType == TEXT("add_blueprint_variable_get_node") ||
                      CommandType == TEXT("add_blueprint_variable_set_node") ||
-                     CommandType == TEXT("add_branch_node"))
+                     CommandType == TEXT("add_branch_node") ||
+                     CommandType == TEXT("add_math_node") ||
+                     CommandType == TEXT("add_cast_node") ||
+                     CommandType == TEXT("add_sequence_node") ||
+                     CommandType == TEXT("add_for_each_loop_node") ||
+                     CommandType == TEXT("add_while_loop_node") ||
+                     CommandType == TEXT("add_timeline_node") ||
+                     CommandType == TEXT("add_timeline_float_track") ||
+                     CommandType == TEXT("add_timeline_keyframe"))
             {
                 ResultJson = BlueprintNodeCommands->HandleCommand(CommandType, Params);
             }
@@ -310,7 +320,10 @@ FString UUnrealMCPBridge::ExecuteCommand(const FString& CommandType, const TShar
             else if (CommandType == TEXT("save_current_level") ||
                      CommandType == TEXT("open_level") ||
                      CommandType == TEXT("get_current_level_name") ||
-                     CommandType == TEXT("create_new_level"))
+                     CommandType == TEXT("create_new_level") ||
+                     CommandType == TEXT("add_sublevel") ||
+                     CommandType == TEXT("remove_sublevel") ||
+                     CommandType == TEXT("get_sublevels"))
             {
                 ResultJson = LevelCommands->HandleCommand(CommandType, Params);
             }
@@ -328,9 +341,44 @@ FString UUnrealMCPBridge::ExecuteCommand(const FString& CommandType, const TShar
                      CommandType == TEXT("add_actor_to_sequence") ||
                      CommandType == TEXT("add_transform_track") ||
                      CommandType == TEXT("add_transform_keyframe") ||
-                     CommandType == TEXT("get_sequences_in_level"))
+                     CommandType == TEXT("get_sequences_in_level") ||
+                     CommandType == TEXT("add_camera_cut_track") ||
+                     CommandType == TEXT("add_camera_cut"))
             {
                 ResultJson = SequencerCommands->HandleCommand(CommandType, Params);
+            }
+            // AI Commands
+            else if (CommandType == TEXT("create_behavior_tree") ||
+                     CommandType == TEXT("add_behavior_tree_node") ||
+                     CommandType == TEXT("connect_behavior_tree_nodes") ||
+                     CommandType == TEXT("add_behavior_tree_decorator") ||
+                     CommandType == TEXT("get_behavior_tree_nodes") ||
+                     CommandType == TEXT("create_blackboard") ||
+                     CommandType == TEXT("add_blackboard_key") ||
+                     CommandType == TEXT("get_blackboard_keys") ||
+                     CommandType == TEXT("build_nav_mesh"))
+            {
+                ResultJson = FUnrealMCPAICommands::HandleCommand(CommandType, Params);
+            }
+            // Data Commands
+            else if (CommandType == TEXT("create_data_table") ||
+                     CommandType == TEXT("import_data_table") ||
+                     CommandType == TEXT("export_data_table") ||
+                     CommandType == TEXT("add_data_table_row") ||
+                     CommandType == TEXT("edit_data_table_row") ||
+                     CommandType == TEXT("get_data_table_row") ||
+                     CommandType == TEXT("list_data_table_rows") ||
+                     CommandType == TEXT("create_data_asset") ||
+                     CommandType == TEXT("set_data_asset_properties") ||
+                     CommandType == TEXT("get_data_asset_properties") ||
+                     CommandType == TEXT("create_string_table") ||
+                     CommandType == TEXT("add_string_table_entry") ||
+                     CommandType == TEXT("get_string_table_entry") ||
+                     CommandType == TEXT("remove_string_table_entry") ||
+                     CommandType == TEXT("list_string_table_entries") ||
+                     CommandType == TEXT("export_string_table"))
+            {
+                ResultJson = FUnrealMCPDataCommands::HandleCommand(CommandType, Params);
             }
             else
             {

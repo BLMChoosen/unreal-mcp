@@ -275,6 +275,9 @@ from tools.material_tools import register_material_tools
 from tools.level_tools import register_level_tools
 from tools.asset_tools import register_asset_tools
 from tools.sequencer_tools import register_sequencer_tools
+from tools.ai_tools import register_ai_tools
+from tools.behavior_tree_tools import register_behavior_tree_tools
+from tools.data_tools import register_data_tools
 
 # Register tools
 register_editor_tools(mcp)
@@ -286,6 +289,9 @@ register_material_tools(mcp)
 register_level_tools(mcp)
 register_asset_tools(mcp)
 register_sequencer_tools(mcp)
+register_ai_tools(mcp)
+register_behavior_tree_tools(mcp)
+register_data_tools(mcp)
 
 
 @mcp.prompt()
@@ -343,6 +349,33 @@ def info():
     
     ## Project Tools
     - `create_input_mapping(action_name, key, input_type)` - Create input mappings
+
+    ## AI Tools
+    - `create_blackboard(name, path)` - Create Blackboard assets
+    - `add_blackboard_key(blackboard_path, key_name, key_type)` - Add Blackboard keys
+    - `get_blackboard_keys(blackboard_path)` - List Blackboard keys
+    - `create_behavior_tree(name, path, blackboard_path)` - Create Behavior Tree assets
+    - `add_behavior_tree_node(behavior_tree_path, node_type)` - Add Selector, Sequence, or Task nodes
+    - `connect_behavior_tree_nodes(behavior_tree_path, parent_node_id, child_node_id)` - Link Behavior Tree nodes
+    - `add_behavior_tree_decorator(behavior_tree_path, parent_node_id, child_node_id, decorator_type)` - Add decorators
+    - `build_nav_mesh(extent_x, extent_y, extent_z, location)` - Spawn or expand NavMeshBoundsVolume
+
+    ## Data Tools
+    - `create_data_table(name, row_struct, path)` - Create a Data Table asset
+    - `import_data_table(data_table_path, data, data_format)` - Import CSV or JSON into a Data Table
+    - `export_data_table(data_table_path, data_format)` - Export Data Table CSV or JSON
+    - `add_data_table_row(data_table_path, row_name, row_data)` - Add Data Table rows
+    - `get_data_table_row(data_table_path, row_name)` - Read a Data Table row
+    - `edit_data_table_row(data_table_path, row_name, row_data)` - Update a Data Table row
+    - `list_data_table_rows(data_table_path)` - List Data Table row names
+    - `create_data_asset(name, path, asset_class)` - Create Data Asset instances
+    - `set_data_asset_properties(data_asset_path, properties)` - Set Data Asset fields
+    - `create_string_table(name, path)` - Create String Table assets
+    - `add_string_table_entry(string_table_path, key, source_string)` - Add or update localized strings
+    - `get_string_table_entry(string_table_path, key)` - Read a localized string
+    - `remove_string_table_entry(string_table_path, key)` - Remove a localized string
+    - `list_string_table_entries(string_table_path)` - List String Table entries
+    - `export_string_table(string_table_path)` - Export String Table entries as JSON
     
     ## Best Practices
     

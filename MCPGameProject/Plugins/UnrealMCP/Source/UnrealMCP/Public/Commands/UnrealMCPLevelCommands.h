@@ -19,4 +19,9 @@ private:
     TSharedPtr<FJsonObject> HandleOpenLevel(const TSharedPtr<FJsonObject>& Params);
     TSharedPtr<FJsonObject> HandleGetCurrentLevelName(const TSharedPtr<FJsonObject>& Params);
     TSharedPtr<FJsonObject> HandleCreateNewLevel(const TSharedPtr<FJsonObject>& Params);
+
+    // Streaming sub-level management
+    TSharedPtr<FJsonObject> HandleAddSublevel(const TSharedPtr<FJsonObject>& Params);
+    TSharedPtr<FJsonObject> HandleRemoveSublevel(const TSharedPtr<FJsonObject>& Params);
+    TSharedPtr<FJsonObject> HandleGetSublevels(const TSharedPtr<FJsonObject>& Params);
 };

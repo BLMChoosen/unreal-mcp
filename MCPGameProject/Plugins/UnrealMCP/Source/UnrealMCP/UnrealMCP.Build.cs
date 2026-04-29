@@ -34,7 +34,10 @@ public class UnrealMCP : ModuleRules
 				"HTTP",
 				"Json",
 				"JsonUtilities",
-				"DeveloperSettings"
+				"DeveloperSettings",
+				"NavigationSystem",
+				"AIModule",
+				"GameplayTasks"
 			}
 		);
 		
@@ -70,7 +73,8 @@ public class UnrealMCP : ModuleRules
 					"UMGEditor",           // For WidgetBlueprint.h and other UMG editor functionality
 					"MaterialEditor",       // For UMaterialEditingLibrary
 					"Sequencer",            // For sequencer editor utilities
-					"LevelEditor"           // For level editor viewport client
+					"LevelEditor",          // For level editor viewport client
+					"BehaviorTreeEditor",   // For Behavior Tree manipulation
 				}
 			);
 		}

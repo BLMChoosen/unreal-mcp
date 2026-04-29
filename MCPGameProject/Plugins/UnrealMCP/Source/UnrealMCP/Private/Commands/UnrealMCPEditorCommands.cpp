@@ -1072,7 +1072,7 @@ TSharedPtr<FJsonObject> FUnrealMCPEditorCommands::HandleSetViewportShowFlags(con
 
     FEngineShowFlags& Flags = VC->EngineShowFlags;
     if      (Flag.Equals(TEXT("Grid"),       ESearchCase::IgnoreCase)) Flags.SetGrid(bEnabled);
-    else if (Flag.Equals(TEXT("Stats"),      ESearchCase::IgnoreCase)) Flags.SetStatsHUD(bEnabled);
+    else if (Flag.Equals(TEXT("Stats"),      ESearchCase::IgnoreCase)) VC->SetShowStats(bEnabled);
     else if (Flag.Equals(TEXT("Bounds"),     ESearchCase::IgnoreCase)) Flags.SetBounds(bEnabled);
     else if (Flag.Equals(TEXT("Collision"),  ESearchCase::IgnoreCase)) Flags.SetCollision(bEnabled);
     else if (Flag.Equals(TEXT("Navigation"), ESearchCase::IgnoreCase)) Flags.SetNavigation(bEnabled);

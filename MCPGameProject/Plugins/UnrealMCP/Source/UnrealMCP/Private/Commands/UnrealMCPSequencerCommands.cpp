@@ -1,16 +1,17 @@
 #include "Commands/UnrealMCPSequencerCommands.h"
 #include "Commands/UnrealMCPCommonUtils.h"
 #include "AssetRegistry/AssetRegistryModule.h"
-#include "AssetToolsModule.h"
-#include "IAssetTools.h"
 #include "Editor.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "LevelSequence.h"
 #include "MovieScene.h"
-#include "Factories/LevelSequenceFactoryNew.h"
+#include "Misc/PackageName.h"
 #include "Tracks/MovieScene3DTransformTrack.h"
 #include "Sections/MovieScene3DTransformSection.h"
+#include "Tracks/MovieSceneCameraCutTrack.h"
+#include "Sections/MovieSceneCameraCutSection.h"
+#include "MovieSceneObjectBindingID.h"
 #include "Channels/MovieSceneDoubleChannel.h"
 #include "Channels/MovieSceneChannelProxy.h"
 
@@ -39,6 +40,14 @@ TSharedPtr<FJsonObject> FUnrealMCPSequencerCommands::HandleCommand(const FString
     else if (CommandType == TEXT("get_sequences_in_level"))
     {
         return HandleGetSequencesInLevel(Params);
+    }
+    else if (CommandType == TEXT("add_camera_cut_track"))
+    {
+        return HandleAddCameraCutTrack(Params);
+    }
+    else if (CommandType == TEXT("add_camera_cut"))
+    {
+        return HandleAddCameraCut(Params);
     }
 
     return FUnrealMCPCommonUtils::CreateErrorResponse(FString::Printf(TEXT("Unknown sequencer command: %s"), *CommandType));
@@ -100,15 +109,18 @@ TSharedPtr<FJsonObject> FUnrealMCPSequencerCommands::HandleCreateLevelSequence(c
     double Duration = 5.0;
     Params->TryGetNumberField(TEXT("duration"), Duration);
 
-    FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
-    ULevelSequenceFactoryNew* Factory = NewObject<ULevelSequenceFactoryNew>();
-
-    UObject* NewAsset = AssetToolsModule.Get().CreateAsset(SequenceName, Path, ULevelSequence::StaticClass(), Factory);
-    ULevelSequence* Sequence = Cast<ULevelSequence>(NewAsset);
+    const FString PackageName = FString::Printf(TEXT("%s/%s"), *Path, *SequenceName);
+    UPackage* Package = CreatePackage(*PackageName);
+    ULevelSequence* Sequence = NewObject<ULevelSequence>(
+        Package,
+        ULevelSequence::StaticClass(),
+        FName(*SequenceName),
+        RF_Public | RF_Standalone | RF_Transactional);
     if (!Sequence)
     {
         return FUnrealMCPCommonUtils::CreateErrorResponse(FString::Printf(TEXT("Failed to create level sequence '%s'"), *SequenceName));
     }
+    Sequence->Initialize();
 
     UMovieScene* MovieScene = Sequence->GetMovieScene();
     if (MovieScene)
@@ -119,12 +131,12 @@ TSharedPtr<FJsonObject> FUnrealMCPSequencerCommands::HandleCreateLevelSequence(c
         MovieScene->SetPlaybackRange(StartFrame, (EndFrame - StartFrame).Value);
     }
 
-    Sequence->GetOutermost()->MarkPackageDirty();
     FAssetRegistryModule::AssetCreated(Sequence);
+    Package->MarkPackageDirty();
 
     TSharedPtr<FJsonObject> Result = MakeShared<FJsonObject>();
     Result->SetStringField(TEXT("name"), SequenceName);
-    Result->SetStringField(TEXT("path"), FString::Printf(TEXT("%s/%s"), *Path, *SequenceName));
+    Result->SetStringField(TEXT("path"), PackageName);
     Result->SetNumberField(TEXT("duration"), Duration);
     return Result;
 }
@@ -355,5 +367,139 @@ TSharedPtr<FJsonObject> FUnrealMCPSequencerCommands::HandleGetSequencesInLevel(c
     TSharedPtr<FJsonObject> Result = MakeShared<FJsonObject>();
     Result->SetArrayField(TEXT("sequences"), SeqArray);
     Result->SetNumberField(TEXT("count"), SeqArray.Num());
+    return Result;
+}
+
+// ---------------------------------------------------------------------------
+// Camera Cut Track
+// ---------------------------------------------------------------------------
+
+TSharedPtr<FJsonObject> FUnrealMCPSequencerCommands::HandleAddCameraCutTrack(const TSharedPtr<FJsonObject>& Params)
+{
+    FString SequenceName;
+    if (!Params->TryGetStringField(TEXT("sequence_name"), SequenceName))
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Missing 'sequence_name' parameter"));
+    }
+
+    ULevelSequence* Sequence = LoadLevelSequenceByName(SequenceName);
+    if (!Sequence)
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(FString::Printf(TEXT("Sequence not found: %s"), *SequenceName));
+    }
+
+    UMovieScene* MovieScene = Sequence->GetMovieScene();
+    if (!MovieScene)
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Sequence has no MovieScene"));
+    }
+
+    // Only one camera cut track is allowed per sequence
+    UMovieSceneCameraCutTrack* CutTrack = Cast<UMovieSceneCameraCutTrack>(MovieScene->GetCameraCutTrack());
+    if (!CutTrack)
+    {
+        CutTrack = Cast<UMovieSceneCameraCutTrack>(
+            MovieScene->AddCameraCutTrack(UMovieSceneCameraCutTrack::StaticClass()));
+    }
+
+    if (!CutTrack)
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Failed to create camera cut track"));
+    }
+
+    Sequence->GetOutermost()->MarkPackageDirty();
+
+    TSharedPtr<FJsonObject> Result = MakeShared<FJsonObject>();
+    Result->SetStringField(TEXT("sequence_name"), SequenceName);
+    Result->SetBoolField(TEXT("camera_cut_track_added"), true);
+    return Result;
+}
+
+// ---------------------------------------------------------------------------
+// Camera Cut Section (links a binding to a time range in the cut track)
+// ---------------------------------------------------------------------------
+
+TSharedPtr<FJsonObject> FUnrealMCPSequencerCommands::HandleAddCameraCut(const TSharedPtr<FJsonObject>& Params)
+{
+    FString SequenceName;
+    if (!Params->TryGetStringField(TEXT("sequence_name"), SequenceName))
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Missing 'sequence_name' parameter"));
+    }
+
+    FString CameraBindingIdStr;
+    if (!Params->TryGetStringField(TEXT("camera_binding_id"), CameraBindingIdStr))
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Missing 'camera_binding_id' parameter"));
+    }
+
+    FGuid CameraBindingGuid;
+    if (!FGuid::Parse(CameraBindingIdStr, CameraBindingGuid))
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Invalid 'camera_binding_id' GUID"));
+    }
+
+    double StartTime = 0.0;
+    Params->TryGetNumberField(TEXT("start_time"), StartTime);
+
+    double EndTime = -1.0;
+    Params->TryGetNumberField(TEXT("end_time"), EndTime);
+
+    ULevelSequence* Sequence = LoadLevelSequenceByName(SequenceName);
+    if (!Sequence)
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(FString::Printf(TEXT("Sequence not found: %s"), *SequenceName));
+    }
+
+    UMovieScene* MovieScene = Sequence->GetMovieScene();
+    if (!MovieScene)
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Sequence has no MovieScene"));
+    }
+
+    UMovieSceneCameraCutTrack* CutTrack = Cast<UMovieSceneCameraCutTrack>(MovieScene->GetCameraCutTrack());
+    if (!CutTrack)
+    {
+        CutTrack = Cast<UMovieSceneCameraCutTrack>(
+            MovieScene->AddCameraCutTrack(UMovieSceneCameraCutTrack::StaticClass()));
+    }
+    if (!CutTrack)
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Failed to get or create camera cut track"));
+    }
+
+    const FFrameRate TickResolution = MovieScene->GetTickResolution();
+    const FFrameNumber StartFrame = (StartTime * TickResolution).RoundToFrame();
+
+    FFrameNumber EndFrame;
+    if (EndTime >= 0.0)
+    {
+        EndFrame = (EndTime * TickResolution).RoundToFrame();
+    }
+    else
+    {
+        EndFrame = MovieScene->GetPlaybackRange().GetUpperBoundValue();
+    }
+
+    UMovieSceneCameraCutSection* CutSection = Cast<UMovieSceneCameraCutSection>(CutTrack->CreateNewSection());
+    if (!CutSection)
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Failed to create camera cut section"));
+    }
+
+    CutSection->SetRange(TRange<FFrameNumber>(StartFrame, EndFrame));
+
+    FMovieSceneObjectBindingID BindingID;
+    BindingID.SetGuid(CameraBindingGuid);
+    CutSection->SetCameraBindingID(BindingID);
+
+    CutTrack->AddSection(*CutSection);
+    Sequence->GetOutermost()->MarkPackageDirty();
+
+    TSharedPtr<FJsonObject> Result = MakeShared<FJsonObject>();
+    Result->SetStringField(TEXT("sequence_name"), SequenceName);
+    Result->SetStringField(TEXT("camera_binding_id"), CameraBindingIdStr);
+    Result->SetNumberField(TEXT("start_time"), StartTime);
+    Result->SetNumberField(TEXT("end_time"), EndTime >= 0.0 ? EndTime : -1.0);
     return Result;
 }

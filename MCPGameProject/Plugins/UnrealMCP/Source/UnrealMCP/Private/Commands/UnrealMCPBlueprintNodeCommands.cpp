@@ -12,11 +12,18 @@
 #include "K2Node_IfThenElse.h"
 #include "K2Node_InputAction.h"
 #include "K2Node_Self.h"
+#include "K2Node_DynamicCast.h"
+#include "K2Node_ExecutionSequence.h"
+#include "K2Node_Timeline.h"
+#include "K2Node_MacroInstance.h"
+#include "Engine/TimelineTemplate.h"
+#include "Curves/CurveFloat.h"
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "GameFramework/InputSettings.h"
 #include "Camera/CameraActor.h"
 #include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetMathLibrary.h"
 #include "EdGraphSchema_K2.h"
 
 // Declare the log category
@@ -75,6 +82,30 @@ TSharedPtr<FJsonObject> FUnrealMCPBlueprintNodeCommands::HandleCommand(const FSt
     else if (CommandType == TEXT("add_branch_node"))
     {
         return HandleAddBranchNode(Params);
+    }
+    else if (CommandType == TEXT("add_math_node"))
+    {
+        return HandleAddMathNode(Params);
+    }
+    else if (CommandType == TEXT("add_cast_node"))
+    {
+        return HandleAddCastNode(Params);
+    }
+    else if (CommandType == TEXT("add_sequence_node"))
+    {
+        return HandleAddSequenceNode(Params);
+    }
+    else if (CommandType == TEXT("add_foreach_loop_node"))
+    {
+        return HandleAddForEachLoopNode(Params);
+    }
+    else if (CommandType == TEXT("add_while_loop_node"))
+    {
+        return HandleAddWhileLoopNode(Params);
+    }
+    else if (CommandType == TEXT("add_timeline_node"))
+    {
+        return HandleAddTimelineNode(Params);
     }
 
     return FUnrealMCPCommonUtils::CreateErrorResponse(FString::Printf(TEXT("Unknown blueprint node command: %s"), *CommandType));
@@ -338,7 +369,7 @@ TSharedPtr<FJsonObject> FUnrealMCPBlueprintNodeCommands::HandleAddBlueprintFunct
         UClass* TargetClass = nullptr;
         
         // First try without a prefix
-        TargetClass = FindObject<UClass>(ANY_PACKAGE, *Target);
+        TargetClass = FindFirstObjectSafe<UClass>(*Target);
         UE_LOG(LogTemp, Display, TEXT("Tried to find class '%s': %s"), 
                *Target, TargetClass ? TEXT("Found") : TEXT("Not found"));
         
@@ -346,7 +377,7 @@ TSharedPtr<FJsonObject> FUnrealMCPBlueprintNodeCommands::HandleAddBlueprintFunct
         if (!TargetClass && !Target.StartsWith(TEXT("U")))
         {
             FString TargetWithPrefix = FString(TEXT("U")) + Target;
-            TargetClass = FindObject<UClass>(ANY_PACKAGE, *TargetWithPrefix);
+            TargetClass = FindFirstObjectSafe<UClass>(*TargetWithPrefix);
             UE_LOG(LogTemp, Display, TEXT("Tried to find class '%s': %s"), 
                    *TargetWithPrefix, TargetClass ? TEXT("Found") : TEXT("Not found"));
         }
@@ -361,7 +392,7 @@ TSharedPtr<FJsonObject> FUnrealMCPBlueprintNodeCommands::HandleAddBlueprintFunct
             
             for (const FString& ClassName : PossibleClassNames)
             {
-                TargetClass = FindObject<UClass>(ANY_PACKAGE, *ClassName);
+                TargetClass = FindFirstObjectSafe<UClass>(*ClassName);
                 if (TargetClass)
                 {
                     UE_LOG(LogTemp, Display, TEXT("Found class using alternative name '%s'"), *ClassName);
@@ -374,7 +405,7 @@ TSharedPtr<FJsonObject> FUnrealMCPBlueprintNodeCommands::HandleAddBlueprintFunct
         if (!TargetClass && Target == TEXT("UGameplayStatics"))
         {
             // For UGameplayStatics, use a direct reference to known class
-            TargetClass = FindObject<UClass>(ANY_PACKAGE, TEXT("UGameplayStatics"));
+            TargetClass = FindFirstObjectSafe<UClass>(TEXT("UGameplayStatics"));
             if (!TargetClass)
             {
                 // Try loading it from its known package
@@ -521,7 +552,7 @@ TSharedPtr<FJsonObject> FUnrealMCPBlueprintNodeCommands::HandleAddBlueprintFunct
                             const FString& ClassName = StringVal;
                             
                             // TODO: This likely won't work in UE5.5+, so don't rely on it.
-                            UClass* Class = FindObject<UClass>(ANY_PACKAGE, *ClassName);
+                            UClass* Class = FindFirstObjectSafe<UClass>(*ClassName);
 
                             if (!Class)
                             {
@@ -1172,5 +1203,516 @@ TSharedPtr<FJsonObject> FUnrealMCPBlueprintNodeCommands::HandleAddBranchNode(con
 
     TSharedPtr<FJsonObject> Result = MakeShared<FJsonObject>();
     Result->SetStringField(TEXT("node_id"), BranchNode->NodeGuid.ToString());
+    return Result;
+}
+
+// ---------------------------------------------------------------------------
+// Math node  (UK2Node_CallFunction wrapping UKismetMathLibrary)
+// ---------------------------------------------------------------------------
+
+TSharedPtr<FJsonObject> FUnrealMCPBlueprintNodeCommands::HandleAddMathNode(const TSharedPtr<FJsonObject>& Params)
+{
+    FString BlueprintName;
+    if (!Params->TryGetStringField(TEXT("blueprint_name"), BlueprintName))
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Missing 'blueprint_name' parameter"));
+    }
+
+    FString Operation;
+    if (!Params->TryGetStringField(TEXT("operation"), Operation))
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Missing 'operation' parameter"));
+    }
+
+    FVector2D NodePosition(0.f, 0.f);
+    if (Params->HasField(TEXT("node_position")))
+    {
+        NodePosition = FUnrealMCPCommonUtils::GetVector2DFromJson(Params, TEXT("node_position"));
+    }
+
+    UBlueprint* Blueprint = FUnrealMCPCommonUtils::FindBlueprint(BlueprintName);
+    if (!Blueprint)
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(FString::Printf(TEXT("Blueprint not found: %s"), *BlueprintName));
+    }
+
+    UEdGraph* EventGraph = FUnrealMCPCommonUtils::FindOrCreateEventGraph(Blueprint);
+    if (!EventGraph)
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Failed to find or create EventGraph"));
+    }
+
+    UClass* MathLibClass = UKismetMathLibrary::StaticClass();
+    UFunction* MathFunc = MathLibClass->FindFunctionByName(FName(*Operation));
+    if (!MathFunc)
+    {
+        // Case-insensitive fallback
+        for (TFieldIterator<UFunction> It(MathLibClass); It; ++It)
+        {
+            if (It->GetName().Equals(Operation, ESearchCase::IgnoreCase))
+            {
+                MathFunc = *It;
+                break;
+            }
+        }
+    }
+
+    if (!MathFunc)
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(
+            FString::Printf(TEXT("KismetMathLibrary function not found: %s"), *Operation));
+    }
+
+    UK2Node_CallFunction* MathNode = FUnrealMCPCommonUtils::CreateFunctionCallNode(EventGraph, MathFunc, NodePosition);
+    if (!MathNode)
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Failed to create math function node"));
+    }
+
+    FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
+
+    TSharedPtr<FJsonObject> Result = MakeShared<FJsonObject>();
+    Result->SetStringField(TEXT("node_id"), MathNode->NodeGuid.ToString());
+    Result->SetStringField(TEXT("operation"), Operation);
+    return Result;
+}
+
+// ---------------------------------------------------------------------------
+// Cast node  (UK2Node_DynamicCast)
+// ---------------------------------------------------------------------------
+
+TSharedPtr<FJsonObject> FUnrealMCPBlueprintNodeCommands::HandleAddCastNode(const TSharedPtr<FJsonObject>& Params)
+{
+    FString BlueprintName;
+    if (!Params->TryGetStringField(TEXT("blueprint_name"), BlueprintName))
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Missing 'blueprint_name' parameter"));
+    }
+
+    FString CastToClass;
+    if (!Params->TryGetStringField(TEXT("cast_to_class"), CastToClass))
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Missing 'cast_to_class' parameter"));
+    }
+
+    FVector2D NodePosition(0.f, 0.f);
+    if (Params->HasField(TEXT("node_position")))
+    {
+        NodePosition = FUnrealMCPCommonUtils::GetVector2DFromJson(Params, TEXT("node_position"));
+    }
+
+    UBlueprint* Blueprint = FUnrealMCPCommonUtils::FindBlueprint(BlueprintName);
+    if (!Blueprint)
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(FString::Printf(TEXT("Blueprint not found: %s"), *BlueprintName));
+    }
+
+    UEdGraph* EventGraph = FUnrealMCPCommonUtils::FindOrCreateEventGraph(Blueprint);
+    if (!EventGraph)
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Failed to find or create EventGraph"));
+    }
+
+    // Resolve target class (try with/without prefix)
+    UClass* TargetClass = FindFirstObjectSafe<UClass>(*CastToClass);
+    if (!TargetClass)
+    {
+        TargetClass = LoadObject<UClass>(nullptr, *FString::Printf(TEXT("/Script/Engine.%s"), *CastToClass));
+    }
+    if (!TargetClass)
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(
+            FString::Printf(TEXT("Class not found: %s"), *CastToClass));
+    }
+
+    UK2Node_DynamicCast* CastNode = NewObject<UK2Node_DynamicCast>(EventGraph);
+    CastNode->TargetType = TargetClass;
+    CastNode->NodePosX = NodePosition.X;
+    CastNode->NodePosY = NodePosition.Y;
+    EventGraph->AddNode(CastNode, true, false);
+    CastNode->CreateNewGuid();
+    CastNode->PostPlacedNewNode();
+    CastNode->AllocateDefaultPins();
+
+    FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
+
+    TSharedPtr<FJsonObject> Result = MakeShared<FJsonObject>();
+    Result->SetStringField(TEXT("node_id"), CastNode->NodeGuid.ToString());
+    Result->SetStringField(TEXT("cast_to_class"), CastToClass);
+    return Result;
+}
+
+// ---------------------------------------------------------------------------
+// Sequence node  (UK2Node_ExecutionSequence)
+// ---------------------------------------------------------------------------
+
+TSharedPtr<FJsonObject> FUnrealMCPBlueprintNodeCommands::HandleAddSequenceNode(const TSharedPtr<FJsonObject>& Params)
+{
+    FString BlueprintName;
+    if (!Params->TryGetStringField(TEXT("blueprint_name"), BlueprintName))
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Missing 'blueprint_name' parameter"));
+    }
+
+    int32 NumOutputs = 2;
+    if (Params->HasField(TEXT("num_outputs")))
+    {
+        Params->TryGetNumberField(TEXT("num_outputs"), NumOutputs);
+        NumOutputs = FMath::Clamp(NumOutputs, 2, 16);
+    }
+
+    FVector2D NodePosition(0.f, 0.f);
+    if (Params->HasField(TEXT("node_position")))
+    {
+        NodePosition = FUnrealMCPCommonUtils::GetVector2DFromJson(Params, TEXT("node_position"));
+    }
+
+    UBlueprint* Blueprint = FUnrealMCPCommonUtils::FindBlueprint(BlueprintName);
+    if (!Blueprint)
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(FString::Printf(TEXT("Blueprint not found: %s"), *BlueprintName));
+    }
+
+    UEdGraph* EventGraph = FUnrealMCPCommonUtils::FindOrCreateEventGraph(Blueprint);
+    if (!EventGraph)
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Failed to find or create EventGraph"));
+    }
+
+    UK2Node_ExecutionSequence* SeqNode = NewObject<UK2Node_ExecutionSequence>(EventGraph);
+    SeqNode->NodePosX = NodePosition.X;
+    SeqNode->NodePosY = NodePosition.Y;
+    EventGraph->AddNode(SeqNode, true, false);
+    SeqNode->CreateNewGuid();
+    SeqNode->PostPlacedNewNode();
+    SeqNode->AllocateDefaultPins();
+
+    // AllocateDefaultPins creates 2 outputs; add extras as needed
+    for (int32 i = 2; i < NumOutputs; ++i)
+    {
+        SeqNode->AddInputPin();
+    }
+
+    FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
+
+    TSharedPtr<FJsonObject> Result = MakeShared<FJsonObject>();
+    Result->SetStringField(TEXT("node_id"), SeqNode->NodeGuid.ToString());
+    Result->SetNumberField(TEXT("num_outputs"), NumOutputs);
+    return Result;
+}
+
+// ---------------------------------------------------------------------------
+// ForEach Loop  (UK2Node_MacroInstance – StandardMacros)
+// ---------------------------------------------------------------------------
+
+namespace
+{
+    UK2Node_MacroInstance* CreateStandardMacroNode(UEdGraph* EventGraph, const FString& MacroName, const FVector2D& Position)
+    {
+        const FString MacroLibPath = TEXT("/Engine/EditorBlueprintResources/StandardMacros.StandardMacros");
+        UBlueprint* MacroLib = Cast<UBlueprint>(StaticLoadObject(UBlueprint::StaticClass(), nullptr, *MacroLibPath));
+        if (!MacroLib)
+        {
+            return nullptr;
+        }
+
+        UEdGraph* TargetGraph = nullptr;
+        for (UEdGraph* Graph : MacroLib->MacroGraphs)
+        {
+            if (Graph && Graph->GetName() == MacroName)
+            {
+                TargetGraph = Graph;
+                break;
+            }
+        }
+        if (!TargetGraph)
+        {
+            return nullptr;
+        }
+
+        UK2Node_MacroInstance* MacroNode = NewObject<UK2Node_MacroInstance>(EventGraph);
+        MacroNode->SetMacroGraph(TargetGraph);
+        MacroNode->NodePosX = Position.X;
+        MacroNode->NodePosY = Position.Y;
+        EventGraph->AddNode(MacroNode, true, false);
+        MacroNode->CreateNewGuid();
+        MacroNode->PostPlacedNewNode();
+        MacroNode->AllocateDefaultPins();
+        return MacroNode;
+    }
+}
+
+TSharedPtr<FJsonObject> FUnrealMCPBlueprintNodeCommands::HandleAddForEachLoopNode(const TSharedPtr<FJsonObject>& Params)
+{
+    FString BlueprintName;
+    if (!Params->TryGetStringField(TEXT("blueprint_name"), BlueprintName))
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Missing 'blueprint_name' parameter"));
+    }
+
+    FVector2D NodePosition(0.f, 0.f);
+    if (Params->HasField(TEXT("node_position")))
+    {
+        NodePosition = FUnrealMCPCommonUtils::GetVector2DFromJson(Params, TEXT("node_position"));
+    }
+
+    UBlueprint* Blueprint = FUnrealMCPCommonUtils::FindBlueprint(BlueprintName);
+    if (!Blueprint)
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(FString::Printf(TEXT("Blueprint not found: %s"), *BlueprintName));
+    }
+
+    UEdGraph* EventGraph = FUnrealMCPCommonUtils::FindOrCreateEventGraph(Blueprint);
+    if (!EventGraph)
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Failed to find or create EventGraph"));
+    }
+
+    UK2Node_MacroInstance* MacroNode = CreateStandardMacroNode(EventGraph, TEXT("ForEachLoop"), NodePosition);
+    if (!MacroNode)
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Failed to create ForEachLoop macro node"));
+    }
+
+    FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
+
+    TSharedPtr<FJsonObject> Result = MakeShared<FJsonObject>();
+    Result->SetStringField(TEXT("node_id"), MacroNode->NodeGuid.ToString());
+    return Result;
+}
+
+// ---------------------------------------------------------------------------
+// While Loop  (UK2Node_MacroInstance – StandardMacros)
+// ---------------------------------------------------------------------------
+
+TSharedPtr<FJsonObject> FUnrealMCPBlueprintNodeCommands::HandleAddWhileLoopNode(const TSharedPtr<FJsonObject>& Params)
+{
+    FString BlueprintName;
+    if (!Params->TryGetStringField(TEXT("blueprint_name"), BlueprintName))
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Missing 'blueprint_name' parameter"));
+    }
+
+    FVector2D NodePosition(0.f, 0.f);
+    if (Params->HasField(TEXT("node_position")))
+    {
+        NodePosition = FUnrealMCPCommonUtils::GetVector2DFromJson(Params, TEXT("node_position"));
+    }
+
+    UBlueprint* Blueprint = FUnrealMCPCommonUtils::FindBlueprint(BlueprintName);
+    if (!Blueprint)
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(FString::Printf(TEXT("Blueprint not found: %s"), *BlueprintName));
+    }
+
+    UEdGraph* EventGraph = FUnrealMCPCommonUtils::FindOrCreateEventGraph(Blueprint);
+    if (!EventGraph)
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Failed to find or create EventGraph"));
+    }
+
+    UK2Node_MacroInstance* MacroNode = CreateStandardMacroNode(EventGraph, TEXT("WhileLoop"), NodePosition);
+    if (!MacroNode)
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Failed to create WhileLoop macro node"));
+    }
+
+    FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
+
+    TSharedPtr<FJsonObject> Result = MakeShared<FJsonObject>();
+    Result->SetStringField(TEXT("node_id"), MacroNode->NodeGuid.ToString());
+    return Result;
+}
+
+// ---------------------------------------------------------------------------
+// Timeline node  (UK2Node_Timeline)
+// ---------------------------------------------------------------------------
+
+TSharedPtr<FJsonObject> FUnrealMCPBlueprintNodeCommands::HandleAddTimelineNode(const TSharedPtr<FJsonObject>& Params)
+{
+    FString BlueprintName;
+    if (!Params->TryGetStringField(TEXT("blueprint_name"), BlueprintName))
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Missing 'blueprint_name' parameter"));
+    }
+
+    FString TimelineName;
+    if (!Params->TryGetStringField(TEXT("timeline_name"), TimelineName))
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Missing 'timeline_name' parameter"));
+    }
+
+    FVector2D NodePosition(0.f, 0.f);
+    if (Params->HasField(TEXT("node_position")))
+    {
+        NodePosition = FUnrealMCPCommonUtils::GetVector2DFromJson(Params, TEXT("node_position"));
+    }
+
+    UBlueprint* Blueprint = FUnrealMCPCommonUtils::FindBlueprint(BlueprintName);
+    if (!Blueprint)
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(FString::Printf(TEXT("Blueprint not found: %s"), *BlueprintName));
+    }
+
+    UEdGraph* EventGraph = FUnrealMCPCommonUtils::FindOrCreateEventGraph(Blueprint);
+    if (!EventGraph)
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Failed to find or create EventGraph"));
+    }
+
+    // Ensure the timeline name is unique within this Blueprint
+    const FName TLName(*TimelineName);
+    if (Blueprint->FindTimelineTemplateByVariableName(TLName))
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(
+            FString::Printf(TEXT("Timeline '%s' already exists in blueprint"), *TimelineName));
+    }
+
+    UK2Node_Timeline* TimelineNode = NewObject<UK2Node_Timeline>(EventGraph);
+    TimelineNode->TimelineName = TLName;
+    TimelineNode->NodePosX = NodePosition.X;
+    TimelineNode->NodePosY = NodePosition.Y;
+    EventGraph->AddNode(TimelineNode, true, false);
+    TimelineNode->CreateNewGuid();
+    TimelineNode->PostPlacedNewNode();  // creates the FTimelineTemplate in the Blueprint
+    TimelineNode->AllocateDefaultPins();
+
+    FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
+
+    TSharedPtr<FJsonObject> Result = MakeShared<FJsonObject>();
+    Result->SetStringField(TEXT("node_id"), TimelineNode->NodeGuid.ToString());
+    Result->SetStringField(TEXT("timeline_name"), TimelineName);
+    return Result;
+}
+
+TSharedPtr<FJsonObject> FUnrealMCPBlueprintNodeCommands::HandleAddTimelineFloatTrack(const TSharedPtr<FJsonObject>& Params)
+{
+    FString BlueprintName;
+    if (!Params->TryGetStringField(TEXT("blueprint_name"), BlueprintName))
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Missing 'blueprint_name' parameter"));
+    }
+
+    FString TimelineName;
+    if (!Params->TryGetStringField(TEXT("timeline_name"), TimelineName))
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Missing 'timeline_name' parameter"));
+    }
+
+    FString TrackName;
+    if (!Params->TryGetStringField(TEXT("track_name"), TrackName))
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Missing 'track_name' parameter"));
+    }
+
+    UBlueprint* Blueprint = FUnrealMCPCommonUtils::FindBlueprint(BlueprintName);
+    if (!Blueprint)
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(FString::Printf(TEXT("Blueprint not found: %s"), *BlueprintName));
+    }
+
+    UTimelineTemplate* TimelineTemplate = Blueprint->FindTimelineTemplateByVariableName(FName(*TimelineName));
+    if (!TimelineTemplate)
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(FString::Printf(TEXT("Timeline '%s' not found in blueprint"), *TimelineName));
+    }
+
+    // Create a new Float curve
+    UCurveFloat* NewCurve = NewObject<UCurveFloat>(Blueprint, UCurveFloat::StaticClass(), NAME_None, RF_NoFlags);
+    
+    FTTFloatTrack NewTrack;
+    NewTrack.SetTrackName(FName(*TrackName), TimelineTemplate);
+    NewTrack.CurveFloat = NewCurve;
+    
+    TimelineTemplate->FloatTracks.Add(NewTrack);
+    
+    // Update the node's pins to reflect the new track
+    UEdGraph* EventGraph = FUnrealMCPCommonUtils::FindOrCreateEventGraph(Blueprint);
+    if (EventGraph)
+    {
+        for (UEdGraphNode* Node : EventGraph->Nodes)
+        {
+            if (UK2Node_Timeline* TLNode = Cast<UK2Node_Timeline>(Node))
+            {
+                if (TLNode->TimelineName == FName(*TimelineName))
+                {
+                    TLNode->ReconstructNode();
+                    break;
+                }
+            }
+        }
+    }
+
+    FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
+
+    TSharedPtr<FJsonObject> Result = MakeShared<FJsonObject>();
+    Result->SetBoolField(TEXT("success"), true);
+    return Result;
+}
+
+TSharedPtr<FJsonObject> FUnrealMCPBlueprintNodeCommands::HandleAddTimelineKeyframe(const TSharedPtr<FJsonObject>& Params)
+{
+    FString BlueprintName;
+    if (!Params->TryGetStringField(TEXT("blueprint_name"), BlueprintName))
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Missing 'blueprint_name' parameter"));
+    }
+
+    FString TimelineName;
+    if (!Params->TryGetStringField(TEXT("timeline_name"), TimelineName))
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Missing 'timeline_name' parameter"));
+    }
+
+    FString TrackName;
+    if (!Params->TryGetStringField(TEXT("track_name"), TrackName))
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Missing 'track_name' parameter"));
+    }
+
+    double Time = 0.0;
+    if (!Params->TryGetNumberField(TEXT("time"), Time))
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Missing 'time' parameter"));
+    }
+
+    double Value = 0.0;
+    if (!Params->TryGetNumberField(TEXT("value"), Value))
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Missing 'value' parameter"));
+    }
+
+    UBlueprint* Blueprint = FUnrealMCPCommonUtils::FindBlueprint(BlueprintName);
+    if (!Blueprint)
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(FString::Printf(TEXT("Blueprint not found: %s"), *BlueprintName));
+    }
+
+    UTimelineTemplate* TimelineTemplate = Blueprint->FindTimelineTemplateByVariableName(FName(*TimelineName));
+    if (!TimelineTemplate)
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(FString::Printf(TEXT("Timeline '%s' not found in blueprint"), *TimelineName));
+    }
+
+    bool bFoundTrack = false;
+    for (FTTFloatTrack& Track : TimelineTemplate->FloatTracks)
+    {
+        if (Track.GetTrackName() == FName(*TrackName) && Track.CurveFloat)
+        {
+            Track.CurveFloat->FloatCurve.UpdateOrAddKey(Time, Value);
+            bFoundTrack = true;
+            break;
+        }
+    }
+
+    if (!bFoundTrack)
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(FString::Printf(TEXT("Track '%s' not found in timeline"), *TrackName));
+    }
+
+    FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
+
+    TSharedPtr<FJsonObject> Result = MakeShared<FJsonObject>();
+    Result->SetBoolField(TEXT("success"), true);
     return Result;
 }
