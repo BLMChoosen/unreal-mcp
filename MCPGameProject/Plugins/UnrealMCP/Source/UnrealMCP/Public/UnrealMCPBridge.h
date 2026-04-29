@@ -17,6 +17,12 @@
 #include "Commands/UnrealMCPLevelCommands.h"
 #include "Commands/UnrealMCPAssetCommands.h"
 #include "Commands/UnrealMCPSequencerCommands.h"
+#include "Commands/UnrealMCPSchemaCommands.h"
+#include "Commands/UnrealMCPValidationCommands.h"
+#include "Commands/UnrealMCPLevelDesignCommands.h"
+#include "Commands/UnrealMCPPhysicsCommands.h"
+#include "Commands/UnrealMCPDiagnosticsCommands.h"
+#include "Commands/UnrealMCPPolicyCommands.h"
 #include "UnrealMCPBridge.generated.h"
 
 class FMCPServerRunnable;
@@ -69,4 +75,10 @@ private:
 	TSharedPtr<FUnrealMCPLevelCommands> LevelCommands;
 	TSharedPtr<FUnrealMCPAssetCommands> AssetCommands;
 	TSharedPtr<FUnrealMCPSequencerCommands> SequencerCommands;
+
+	// NOTE: Static command classes (no instances needed):
+	// FUnrealMCPSchemaCommands, FUnrealMCPValidationCommands,
+	// FUnrealMCPLevelDesignCommands, FUnrealMCPPhysicsCommands,
+	// FUnrealMCPDiagnosticsCommands, FUnrealMCPPolicyCommands
+	// FUnrealMCPAdvancedCommands (already static)
 };

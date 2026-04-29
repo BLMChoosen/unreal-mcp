@@ -801,4 +801,300 @@ def register_blueprint_node_tools(mcp: FastMCP):
             logger.error(f"Error adding timeline keyframe: {e}")
             return {"success": False, "message": str(e)}
 
-    logger.info("Blueprint node tools registered successfully")
+    # ===== Phase 2: Extended Blueprint Graph Authoring =====
+
+    @mcp.tool()
+    def create_blueprint_function(
+        ctx: Context,
+        blueprint_name: str,
+        function_name: str,
+        inputs: list = None,
+        outputs: list = None
+    ) -> Dict[str, Any]:
+        """Create a new function graph in a Blueprint.
+
+        Args:
+            blueprint_name: Name of the target Blueprint.
+            function_name: Name for the new function.
+            inputs: Optional list of dicts with 'name' and 'type' for input params.
+            outputs: Optional list of dicts with 'name' and 'type' for output params.
+        """
+        from unreal_mcp_server import get_unreal_connection
+        try:
+            unreal = get_unreal_connection()
+            if not unreal:
+                return {"success": False, "message": "Failed to connect to Unreal Engine"}
+            response = unreal.send_command("create_blueprint_function", {
+                "blueprint_name": blueprint_name,
+                "function_name": function_name,
+                "inputs": inputs or [],
+                "outputs": outputs or []
+            })
+            return response or {"success": False, "message": "No response"}
+        except Exception as e:
+            logger.error(f"Error creating function: {e}")
+            return {"success": False, "message": str(e)}
+
+    @mcp.tool()
+    def create_blueprint_macro(
+        ctx: Context,
+        blueprint_name: str,
+        macro_name: str,
+        inputs: list = None,
+        outputs: list = None
+    ) -> Dict[str, Any]:
+        """Create a new macro graph in a Blueprint.
+
+        Args:
+            blueprint_name: Name of the target Blueprint.
+            macro_name: Name for the new macro.
+            inputs: Optional list of dicts with 'name' and 'type' for input params.
+            outputs: Optional list of dicts with 'name' and 'type' for output params.
+        """
+        from unreal_mcp_server import get_unreal_connection
+        try:
+            unreal = get_unreal_connection()
+            if not unreal:
+                return {"success": False, "message": "Failed to connect to Unreal Engine"}
+            response = unreal.send_command("create_blueprint_macro", {
+                "blueprint_name": blueprint_name,
+                "macro_name": macro_name,
+                "inputs": inputs or [],
+                "outputs": outputs or []
+            })
+            return response or {"success": False, "message": "No response"}
+        except Exception as e:
+            logger.error(f"Error creating macro: {e}")
+            return {"success": False, "message": str(e)}
+
+    @mcp.tool()
+    def create_blueprint_custom_event_graph(
+        ctx: Context,
+        blueprint_name: str,
+        graph_name: str
+    ) -> Dict[str, Any]:
+        """Create a custom event graph in a Blueprint.
+
+        Args:
+            blueprint_name: Name of the target Blueprint.
+            graph_name: Name for the new event graph.
+        """
+        from unreal_mcp_server import get_unreal_connection
+        try:
+            unreal = get_unreal_connection()
+            if not unreal:
+                return {"success": False, "message": "Failed to connect to Unreal Engine"}
+            response = unreal.send_command("create_blueprint_custom_event_graph", {
+                "blueprint_name": blueprint_name,
+                "graph_name": graph_name
+            })
+            return response or {"success": False, "message": "No response"}
+        except Exception as e:
+            logger.error(f"Error creating event graph: {e}")
+            return {"success": False, "message": str(e)}
+
+    @mcp.tool()
+    def add_node_by_class(
+        ctx: Context,
+        blueprint_name: str,
+        node_class: str,
+        node_position: List[float] = None
+    ) -> Dict[str, Any]:
+        """Add any K2Node by its class name to a Blueprint event graph.
+
+        Args:
+            blueprint_name: Name of the target Blueprint.
+            node_class: Full or short class name of the node (e.g. 'K2Node_IfThenElse',
+                        'K2Node_SpawnActorFromClass', 'K2Node_Delay').
+            node_position: Optional [X, Y] position in the graph.
+        """
+        from unreal_mcp_server import get_unreal_connection
+        try:
+            unreal = get_unreal_connection()
+            if not unreal:
+                return {"success": False, "message": "Failed to connect to Unreal Engine"}
+            response = unreal.send_command("add_node_by_class", {
+                "blueprint_name": blueprint_name,
+                "node_class": node_class,
+                "node_position": node_position or [0, 0]
+            })
+            return response or {"success": False, "message": "No response"}
+        except Exception as e:
+            logger.error(f"Error adding node by class: {e}")
+            return {"success": False, "message": str(e)}
+
+    @mcp.tool()
+    def connect_pins_validated(
+        ctx: Context,
+        blueprint_name: str,
+        source_node_id: str,
+        source_pin: str,
+        target_node_id: str,
+        target_pin: str
+    ) -> Dict[str, Any]:
+        """Connect two pins with type validation, returning detailed errors on mismatch.
+
+        Args:
+            blueprint_name: Name of the target Blueprint.
+            source_node_id: ID of the source node.
+            source_pin: Name of the output pin.
+            target_node_id: ID of the target node.
+            target_pin: Name of the input pin.
+        """
+        from unreal_mcp_server import get_unreal_connection
+        try:
+            unreal = get_unreal_connection()
+            if not unreal:
+                return {"success": False, "message": "Failed to connect to Unreal Engine"}
+            response = unreal.send_command("connect_pins_validated", {
+                "blueprint_name": blueprint_name,
+                "source_node_id": source_node_id,
+                "source_pin": source_pin,
+                "target_node_id": target_node_id,
+                "target_pin": target_pin
+            })
+            return response or {"success": False, "message": "No response"}
+        except Exception as e:
+            logger.error(f"Error connecting validated pins: {e}")
+            return {"success": False, "message": str(e)}
+
+    @mcp.tool()
+    def set_pin_default_value(
+        ctx: Context,
+        blueprint_name: str,
+        node_id: str,
+        pin_name: str,
+        default_value: str
+    ) -> Dict[str, Any]:
+        """Set the default value on a node's pin.
+
+        Args:
+            blueprint_name: Name of the target Blueprint.
+            node_id: ID of the node containing the pin.
+            pin_name: Name of the pin to set.
+            default_value: Default value as a string representation.
+        """
+        from unreal_mcp_server import get_unreal_connection
+        try:
+            unreal = get_unreal_connection()
+            if not unreal:
+                return {"success": False, "message": "Failed to connect to Unreal Engine"}
+            response = unreal.send_command("set_pin_default_value", {
+                "blueprint_name": blueprint_name,
+                "node_id": node_id,
+                "pin_name": pin_name,
+                "default_value": default_value
+            })
+            return response or {"success": False, "message": "No response"}
+        except Exception as e:
+            logger.error(f"Error setting pin default: {e}")
+            return {"success": False, "message": str(e)}
+
+    @mcp.tool()
+    def add_custom_event_node(
+        ctx: Context,
+        blueprint_name: str,
+        event_name: str,
+        parameters: list = None,
+        node_position: List[float] = None
+    ) -> Dict[str, Any]:
+        """Add a Custom Event node with a configurable parameter list.
+
+        Args:
+            blueprint_name: Name of the target Blueprint.
+            event_name: Name for the custom event.
+            parameters: Optional list of dicts with 'name' and 'type' for event params.
+            node_position: Optional [X, Y] position.
+        """
+        from unreal_mcp_server import get_unreal_connection
+        try:
+            unreal = get_unreal_connection()
+            if not unreal:
+                return {"success": False, "message": "Failed to connect to Unreal Engine"}
+            response = unreal.send_command("add_custom_event_node", {
+                "blueprint_name": blueprint_name,
+                "event_name": event_name,
+                "parameters": parameters or [],
+                "node_position": node_position or [0, 0]
+            })
+            return response or {"success": False, "message": "No response"}
+        except Exception as e:
+            logger.error(f"Error adding custom event: {e}")
+            return {"success": False, "message": str(e)}
+
+    @mcp.tool()
+    def list_blueprint_functions(
+        ctx: Context,
+        blueprint_name: str
+    ) -> Dict[str, Any]:
+        """List all function and macro graphs in a Blueprint.
+
+        Args:
+            blueprint_name: Name of the target Blueprint.
+        """
+        from unreal_mcp_server import get_unreal_connection
+        try:
+            unreal = get_unreal_connection()
+            if not unreal:
+                return {"success": False, "message": "Failed to connect to Unreal Engine"}
+            response = unreal.send_command("list_blueprint_functions", {
+                "blueprint_name": blueprint_name
+            })
+            return response or {"success": False, "message": "No response"}
+        except Exception as e:
+            logger.error(f"Error listing functions: {e}")
+            return {"success": False, "message": str(e)}
+
+    @mcp.tool()
+    def get_node_pins(
+        ctx: Context,
+        blueprint_name: str,
+        node_id: str
+    ) -> Dict[str, Any]:
+        """Return all pin names, types, and directions for a node.
+
+        Args:
+            blueprint_name: Name of the target Blueprint.
+            node_id: ID of the node to inspect.
+        """
+        from unreal_mcp_server import get_unreal_connection
+        try:
+            unreal = get_unreal_connection()
+            if not unreal:
+                return {"success": False, "message": "Failed to connect to Unreal Engine"}
+            response = unreal.send_command("get_node_pins", {
+                "blueprint_name": blueprint_name,
+                "node_id": node_id
+            })
+            return response or {"success": False, "message": "No response"}
+        except Exception as e:
+            logger.error(f"Error getting node pins: {e}")
+            return {"success": False, "message": str(e)}
+
+    @mcp.tool()
+    def delete_blueprint_node(
+        ctx: Context,
+        blueprint_name: str,
+        node_id: str
+    ) -> Dict[str, Any]:
+        """Remove a node from a Blueprint graph.
+
+        Args:
+            blueprint_name: Name of the target Blueprint.
+            node_id: ID of the node to remove.
+        """
+        from unreal_mcp_server import get_unreal_connection
+        try:
+            unreal = get_unreal_connection()
+            if not unreal:
+                return {"success": False, "message": "Failed to connect to Unreal Engine"}
+            response = unreal.send_command("delete_blueprint_node", {
+                "blueprint_name": blueprint_name,
+                "node_id": node_id
+            })
+            return response or {"success": False, "message": "No response"}
+        except Exception as e:
+            logger.error(f"Error deleting node: {e}")
+            return {"success": False, "message": str(e)}
+
+    logger.info("Blueprint node tools registered successfully")

@@ -592,4 +592,155 @@ def register_editor_tools(mcp: FastMCP):
             logger.error(f"Error setting show flag: {e}")
             return {"success": False, "message": str(e)}
 
+    # ===== Phase 1: Core Editor Enhancements =====
+
+    @mcp.tool()
+    def undo_last_action(ctx: Context) -> Dict[str, Any]:
+        """Undo the last editor operation performed by the AI."""
+        from unreal_mcp_server import get_unreal_connection
+        try:
+            unreal = get_unreal_connection()
+            if not unreal:
+                return {"success": False, "message": "Failed to connect to Unreal Engine"}
+            response = unreal.send_command("undo_last_action", {})
+            return response or {"success": False, "message": "No response"}
+        except Exception as e:
+            logger.error(f"Error undoing action: {e}")
+            return {"success": False, "message": str(e)}
+
+    @mcp.tool()
+    def redo_last_action(ctx: Context) -> Dict[str, Any]:
+        """Redo the last undone editor operation."""
+        from unreal_mcp_server import get_unreal_connection
+        try:
+            unreal = get_unreal_connection()
+            if not unreal:
+                return {"success": False, "message": "Failed to connect to Unreal Engine"}
+            response = unreal.send_command("redo_last_action", {})
+            return response or {"success": False, "message": "No response"}
+        except Exception as e:
+            logger.error(f"Error redoing action: {e}")
+            return {"success": False, "message": str(e)}
+
+    @mcp.tool()
+    def bulk_set_actor_transform(
+        ctx: Context,
+        actor_names: List[str],
+        location: List[float] = None,
+        rotation: List[float] = None,
+        scale: List[float] = None,
+        relative: bool = False
+    ) -> Dict[str, Any]:
+        """Set transform on multiple actors at once.
+
+        Args:
+            actor_names: List of actor names to transform.
+            location: Optional [X, Y, Z] position.
+            rotation: Optional [Pitch, Yaw, Roll] rotation.
+            scale: Optional [X, Y, Z] scale.
+            relative: If True, add to current transform instead of overwriting.
+        """
+        from unreal_mcp_server import get_unreal_connection
+        try:
+            unreal = get_unreal_connection()
+            if not unreal:
+                return {"success": False, "message": "Failed to connect to Unreal Engine"}
+            params: Dict[str, Any] = {"actor_names": actor_names, "relative": relative}
+            if location is not None: params["location"] = location
+            if rotation is not None: params["rotation"] = rotation
+            if scale is not None:    params["scale"] = scale
+            response = unreal.send_command("bulk_set_actor_transform", params)
+            return response or {"success": False, "message": "No response"}
+        except Exception as e:
+            logger.error(f"Error in bulk transform: {e}")
+            return {"success": False, "message": str(e)}
+
+    @mcp.tool()
+    def export_level_to_json(
+        ctx: Context,
+        include_transforms: bool = True,
+        include_properties: bool = False,
+        include_components: bool = False
+    ) -> Dict[str, Any]:
+        """Serialize the entire level state to JSON for analysis or backup.
+
+        Args:
+            include_transforms: Include actor transforms in the output.
+            include_properties: Include detailed actor properties.
+            include_components: Include actor component hierarchy.
+        """
+        from unreal_mcp_server import get_unreal_connection
+        try:
+            unreal = get_unreal_connection()
+            if not unreal:
+                return {"success": False, "message": "Failed to connect to Unreal Engine"}
+            response = unreal.send_command("export_level_to_json", {
+                "include_transforms": include_transforms,
+                "include_properties": include_properties,
+                "include_components": include_components
+            })
+            return response or {"success": False, "message": "No response"}
+        except Exception as e:
+            logger.error(f"Error exporting level: {e}")
+            return {"success": False, "message": str(e)}
+
+    @mcp.tool()
+    def duplicate_actor(
+        ctx: Context,
+        name: str,
+        new_name: str = "",
+        offset: List[float] = None
+    ) -> Dict[str, Any]:
+        """Duplicate an actor with a configurable offset.
+
+        Args:
+            name: Name of the actor to duplicate.
+            new_name: Optional name for the duplicate. Auto-generated if empty.
+            offset: Optional [X, Y, Z] offset from the original actor's position.
+        """
+        from unreal_mcp_server import get_unreal_connection
+        try:
+            unreal = get_unreal_connection()
+            if not unreal:
+                return {"success": False, "message": "Failed to connect to Unreal Engine"}
+            params: Dict[str, Any] = {"name": name}
+            if new_name:
+                params["new_name"] = new_name
+            if offset is not None:
+                params["offset"] = [float(v) for v in offset]
+            response = unreal.send_command("duplicate_actor", params)
+            return response or {"success": False, "message": "No response"}
+        except Exception as e:
+            logger.error(f"Error duplicating actor: {e}")
+            return {"success": False, "message": str(e)}
+
+    @mcp.tool()
+    def set_actor_material(
+        ctx: Context,
+        name: str,
+        material_path: str,
+        slot_index: int = 0
+    ) -> Dict[str, Any]:
+        """Apply a material to an actor directly without opening Blueprint.
+
+        Args:
+            name: Name of the target actor.
+            material_path: Content path to the material or material instance.
+            slot_index: Material slot index (0-based).
+        """
+        from unreal_mcp_server import get_unreal_connection
+        try:
+            unreal = get_unreal_connection()
+            if not unreal:
+                return {"success": False, "message": "Failed to connect to Unreal Engine"}
+            response = unreal.send_command("set_actor_material", {
+                "name": name,
+                "material_path": material_path,
+                "slot_index": slot_index
+            })
+            return response or {"success": False, "message": "No response"}
+        except Exception as e:
+            logger.error(f"Error setting actor material: {e}")
+            return {"success": False, "message": str(e)}
+
     logger.info("Editor tools registered successfully")

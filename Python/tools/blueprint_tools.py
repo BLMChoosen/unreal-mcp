@@ -417,4 +417,32 @@ def register_blueprint_tools(mcp: FastMCP):
             logger.error(error_msg)
             return {"success": False, "message": error_msg}
     
-    logger.info("Blueprint tools registered successfully") 
+    # ===== Phase 1: Blueprint Hot Reload =====
+
+    @mcp.tool()
+    def hot_reload_blueprint(
+        ctx: Context,
+        blueprint_name: str
+    ) -> Dict[str, Any]:
+        """Recompile a Blueprint and update all instances in the current level.
+
+        This performs a full compile and refreshes all spawned instances so
+        changes are immediately visible without restarting the editor.
+
+        Args:
+            blueprint_name: Name of the Blueprint to hot-reload.
+        """
+        from unreal_mcp_server import get_unreal_connection
+        try:
+            unreal = get_unreal_connection()
+            if not unreal:
+                return {"success": False, "message": "Failed to connect to Unreal Engine"}
+            response = unreal.send_command("hot_reload_blueprint", {
+                "blueprint_name": blueprint_name
+            })
+            return response or {"success": False, "message": "No response"}
+        except Exception as e:
+            logger.error(f"Error hot-reloading blueprint: {e}")
+            return {"success": False, "message": str(e)}
+
+    logger.info("Blueprint tools registered successfully") 

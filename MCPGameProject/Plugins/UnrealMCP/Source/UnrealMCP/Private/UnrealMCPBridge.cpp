@@ -59,6 +59,7 @@
 #include "Commands/UnrealMCPUMGCommands.h"
 #include "Commands/UnrealMCPAICommands.h"
 #include "Commands/UnrealMCPDataCommands.h"
+#include "Commands/UnrealMCPAdvancedCommands.h"
 
 // Default settings
 #define MCP_SERVER_HOST "127.0.0.1"
@@ -379,6 +380,127 @@ FString UUnrealMCPBridge::ExecuteCommand(const FString& CommandType, const TShar
                      CommandType == TEXT("export_string_table"))
             {
                 ResultJson = FUnrealMCPDataCommands::HandleCommand(CommandType, Params);
+            }
+            // Advanced AI/Data/World tooling
+            else if (CommandType == TEXT("create_ai_controller_blueprint") ||
+                     CommandType == TEXT("add_ai_perception_component") ||
+                     CommandType == TEXT("configure_ai_perception") ||
+                     CommandType == TEXT("configure_pawn_ai") ||
+                     CommandType == TEXT("create_env_query") ||
+                     CommandType == TEXT("add_env_query_generator") ||
+                     CommandType == TEXT("add_env_query_test") ||
+                     CommandType == TEXT("run_env_query") ||
+                     CommandType == TEXT("get_data_table_schema") ||
+                     CommandType == TEXT("validate_data_table_row") ||
+                     CommandType == TEXT("import_string_table_entries") ||
+                     CommandType == TEXT("add_gameplay_tag") ||
+                     CommandType == TEXT("list_gameplay_tags") ||
+                     CommandType == TEXT("apply_gameplay_tags") ||
+                     CommandType == TEXT("create_input_action") ||
+                     CommandType == TEXT("create_input_mapping_context") ||
+                     CommandType == TEXT("add_input_mapping") ||
+                     CommandType == TEXT("create_niagara_system") ||
+                     CommandType == TEXT("create_niagara_emitter") ||
+                     CommandType == TEXT("spawn_niagara_system") ||
+                     CommandType == TEXT("create_sound_cue") ||
+                     CommandType == TEXT("spawn_sound") ||
+                     CommandType == TEXT("create_collision_profile") ||
+                     CommandType == TEXT("create_collision_channel") ||
+                     CommandType == TEXT("create_functional_test") ||
+                     CommandType == TEXT("run_automation_tests") ||
+                     CommandType == TEXT("line_trace") ||
+                     CommandType == TEXT("find_actors_in_radius") ||
+                     CommandType == TEXT("find_actors_by_tag") ||
+                     CommandType == TEXT("get_actor_distance") ||
+                     CommandType == TEXT("get_asset_referencers") ||
+                     CommandType == TEXT("validate_assets") ||
+                     CommandType == TEXT("validate_blueprint_graph") ||
+                     CommandType == TEXT("create_save_game_blueprint") ||
+                     // Phase 3: Extended BT/EQS commands
+                     CommandType == TEXT("create_bt_task_blueprint") ||
+                     CommandType == TEXT("create_bt_service_blueprint") ||
+                     CommandType == TEXT("add_bt_run_eqs_query") ||
+                     CommandType == TEXT("set_bt_node_blackboard_key") ||
+                     CommandType == TEXT("create_full_ai_setup") ||
+                     // Phase 5: Extended SaveGame/Input/Niagara/Audio
+                     CommandType == TEXT("create_save_game_with_variables") ||
+                     CommandType == TEXT("generate_save_load_functions") ||
+                     CommandType == TEXT("setup_enhanced_input_runtime") ||
+                     CommandType == TEXT("bind_input_action_to_event") ||
+                     CommandType == TEXT("create_player_controller_with_input") ||
+                     CommandType == TEXT("add_niagara_user_parameter") ||
+                     CommandType == TEXT("add_niagara_emitter_to_system") ||
+                     CommandType == TEXT("create_vfx_preset") ||
+                     CommandType == TEXT("create_sound_attenuation") ||
+                     CommandType == TEXT("create_sound_mix") ||
+                     CommandType == TEXT("configure_sound_cue_nodes") ||
+                     CommandType == TEXT("attach_sound_to_actor") ||
+                     // Phase 6: Recipe commands
+                     CommandType == TEXT("create_enemy_ai_archetype") ||
+                     CommandType == TEXT("create_interactable_archetype") ||
+                     CommandType == TEXT("create_pickup_item_archetype") ||
+                     // Phase 6: Diff/Preview commands
+                     CommandType == TEXT("preview_operation") ||
+                     CommandType == TEXT("get_undo_history"))
+            {
+                ResultJson = FUnrealMCPAdvancedCommands::HandleCommand(CommandType, Params);
+            }
+            // Schema commands (Phase 3)
+            else if (CommandType == TEXT("create_user_defined_struct") ||
+                     CommandType == TEXT("add_struct_field") ||
+                     CommandType == TEXT("remove_struct_field") ||
+                     CommandType == TEXT("get_struct_fields") ||
+                     CommandType == TEXT("recompile_struct") ||
+                     CommandType == TEXT("create_data_table_from_struct") ||
+                     CommandType == TEXT("generate_schema"))
+            {
+                ResultJson = FUnrealMCPSchemaCommands::HandleCommand(CommandType, Params);
+            }
+            // Validation commands (Phase 4)
+            else if (CommandType == TEXT("find_unused_assets") ||
+                     CommandType == TEXT("find_broken_references") ||
+                     CommandType == TEXT("validate_naming_conventions") ||
+                     CommandType == TEXT("validate_data_table_against_schema") ||
+                     CommandType == TEXT("generate_validation_report") ||
+                     CommandType == TEXT("get_automation_test_results") ||
+                     CommandType == TEXT("get_automation_test_list"))
+            {
+                ResultJson = FUnrealMCPValidationCommands::HandleCommand(CommandType, Params);
+            }
+            // Level Design commands (Phase 5)
+            else if (CommandType == TEXT("snap_actor_to_grid") ||
+                     CommandType == TEXT("align_actors") ||
+                     CommandType == TEXT("procedural_scatter") ||
+                     CommandType == TEXT("get_actor_bounds") ||
+                     CommandType == TEXT("find_overlapping_actors") ||
+                     CommandType == TEXT("create_volume"))
+            {
+                ResultJson = FUnrealMCPLevelDesignCommands::HandleCommand(CommandType, Params);
+            }
+            // Physics commands (Phase 5)
+            else if (CommandType == TEXT("create_physics_constraint") ||
+                     CommandType == TEXT("setup_ragdoll") ||
+                     CommandType == TEXT("enable_chaos_destruction") ||
+                     CommandType == TEXT("set_physics_constraint_properties"))
+            {
+                ResultJson = FUnrealMCPPhysicsCommands::HandleCommand(CommandType, Params);
+            }
+            // Diagnostics commands (Phase 6)
+            else if (CommandType == TEXT("get_blueprint_compile_errors") ||
+                     CommandType == TEXT("get_message_log") ||
+                     CommandType == TEXT("get_output_log") ||
+                     CommandType == TEXT("get_editor_warnings") ||
+                     CommandType == TEXT("get_map_check_errors"))
+            {
+                ResultJson = FUnrealMCPDiagnosticsCommands::HandleCommand(CommandType, Params);
+            }
+            // Policy commands (Phase 6)
+            else if (CommandType == TEXT("validate_naming_policy") ||
+                     CommandType == TEXT("auto_organize_assets") ||
+                     CommandType == TEXT("batch_rename_assets") ||
+                     CommandType == TEXT("fix_redirectors"))
+            {
+                ResultJson = FUnrealMCPPolicyCommands::HandleCommand(CommandType, Params);
             }
             else
             {

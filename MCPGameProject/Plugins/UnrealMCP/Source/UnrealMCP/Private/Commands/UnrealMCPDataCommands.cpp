@@ -22,7 +22,7 @@
 
 namespace
 {
-	FString ResolveObjectPath(const FString& AssetPath)
+	FString ResolveDataObjectPath(const FString& AssetPath)
 	{
 		if (AssetPath.Contains(TEXT(".")) || AssetPath.StartsWith(TEXT("/Script/")))
 		{
@@ -36,12 +36,12 @@ namespace
 	template <typename TObjectType>
 	TObjectType* LoadAssetObject(const FString& AssetPath)
 	{
-		return LoadObject<TObjectType>(nullptr, *ResolveObjectPath(AssetPath));
+		return LoadObject<TObjectType>(nullptr, *ResolveDataObjectPath(AssetPath));
 	}
 
 	UScriptStruct* LoadRowStruct(const FString& StructPath)
 	{
-		if (UScriptStruct* RowStruct = LoadObject<UScriptStruct>(nullptr, *ResolveObjectPath(StructPath)))
+		if (UScriptStruct* RowStruct = LoadObject<UScriptStruct>(nullptr, *ResolveDataObjectPath(StructPath)))
 		{
 			return RowStruct;
 		}
@@ -676,7 +676,7 @@ TSharedPtr<FJsonObject> FUnrealMCPDataCommands::HandleSetDataAssetProperties(con
 		return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Missing 'data_asset' parameter"));
 	}
 
-	UObject* DataAsset = LoadObject<UObject>(nullptr, *ResolveObjectPath(DataAssetPath));
+	UObject* DataAsset = LoadObject<UObject>(nullptr, *ResolveDataObjectPath(DataAssetPath));
 	if (!DataAsset)
 	{
 		return FUnrealMCPCommonUtils::CreateErrorResponse(FString::Printf(TEXT("Data Asset not found: %s"), *DataAssetPath));
@@ -712,7 +712,7 @@ TSharedPtr<FJsonObject> FUnrealMCPDataCommands::HandleGetDataAssetProperties(con
 		return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Missing 'data_asset' parameter"));
 	}
 
-	UObject* DataAsset = LoadObject<UObject>(nullptr, *ResolveObjectPath(DataAssetPath));
+	UObject* DataAsset = LoadObject<UObject>(nullptr, *ResolveDataObjectPath(DataAssetPath));
 	if (!DataAsset)
 	{
 		return FUnrealMCPCommonUtils::CreateErrorResponse(FString::Printf(TEXT("Data Asset not found: %s"), *DataAssetPath));

@@ -37,7 +37,10 @@ public class UnrealMCP : ModuleRules
 				"DeveloperSettings",
 				"NavigationSystem",
 				"AIModule",
-				"GameplayTasks"
+				"GameplayTasks",
+				"GameplayTags",
+				"EnhancedInput",
+				"Niagara"
 			}
 		);
 		
@@ -75,6 +78,9 @@ public class UnrealMCP : ModuleRules
 					"Sequencer",            // For sequencer editor utilities
 					"LevelEditor",          // For level editor viewport client
 					"BehaviorTreeEditor",   // For Behavior Tree manipulation
+					"NiagaraEditor",        // For Niagara asset factories
+					"AudioEditor",          // For Sound Cue factories
+					"FunctionalTesting",    // For Functional Test actors
 				}
 			);
 		}

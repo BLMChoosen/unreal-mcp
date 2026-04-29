@@ -278,6 +278,15 @@ from tools.sequencer_tools import register_sequencer_tools
 from tools.ai_tools import register_ai_tools
 from tools.behavior_tree_tools import register_behavior_tree_tools
 from tools.data_tools import register_data_tools
+from tools.advanced_tools import register_advanced_tools
+from tools.schema_tools import register_schema_tools
+from tools.validation_tools import register_validation_tools
+from tools.level_design_tools import register_level_design_tools
+from tools.physics_tools import register_physics_tools
+from tools.recipe_tools import register_recipe_tools
+from tools.diff_tools import register_diff_tools
+from tools.policy_tools import register_policy_tools
+from tools.diagnostics_tools import register_diagnostics_tools
 
 # Register tools
 register_editor_tools(mcp)
@@ -292,6 +301,15 @@ register_sequencer_tools(mcp)
 register_ai_tools(mcp)
 register_behavior_tree_tools(mcp)
 register_data_tools(mcp)
+register_advanced_tools(mcp)
+register_schema_tools(mcp)
+register_validation_tools(mcp)
+register_level_design_tools(mcp)
+register_physics_tools(mcp)
+register_recipe_tools(mcp)
+register_diff_tools(mcp)
+register_policy_tools(mcp)
+register_diagnostics_tools(mcp)
 
 
 @mcp.prompt()
@@ -359,6 +377,14 @@ def info():
     - `connect_behavior_tree_nodes(behavior_tree_path, parent_node_id, child_node_id)` - Link Behavior Tree nodes
     - `add_behavior_tree_decorator(behavior_tree_path, parent_node_id, child_node_id, decorator_type)` - Add decorators
     - `build_nav_mesh(extent_x, extent_y, extent_z, location)` - Spawn or expand NavMeshBoundsVolume
+    - `create_ai_controller_blueprint(name, path, add_perception)` - Create AIController Blueprints
+    - `add_ai_perception_component(blueprint_name, component_name)` - Add AI perception to Blueprints
+    - `configure_ai_perception(blueprint_name, component_name, sight, hearing, damage)` - Configure Sight/Hearing/Damage senses
+    - `configure_pawn_ai(blueprint_name, ai_controller_class, auto_possess_ai)` - Assign Pawn AI controller settings
+    - `create_env_query(name, path)` - Create EQS EnvQuery assets
+    - `add_env_query_generator(env_query_path, generator_class, properties)` - Add EQS generators
+    - `add_env_query_test(env_query_path, test_class, option_index, properties)` - Add EQS tests
+    - `run_env_query(env_query_path, querier, run_mode)` - Start an EQS query in the editor world
 
     ## Data Tools
     - `create_data_table(name, row_struct, path)` - Create a Data Table asset
@@ -376,6 +402,39 @@ def info():
     - `remove_string_table_entry(string_table_path, key)` - Remove a localized string
     - `list_string_table_entries(string_table_path)` - List String Table entries
     - `export_string_table(string_table_path)` - Export String Table entries as JSON
+
+    ## Advanced Design Tools
+    - `get_data_table_schema(data_table_path)` - Inspect Data Table row struct fields
+    - `validate_data_table_row(data_table_path, row_data)` - Validate JSON against a Data Table schema
+    - `validate_item_balance(items)` - Validate item rarity/stat/price balance data
+    - `build_dialogue_rows(dialogues)` - Normalize dialogue trees into row dictionaries
+    - `build_quest_rows(quests)` - Normalize quests/objectives/rewards into row dictionaries
+    - `import_string_table_entries(string_table_path, entries)` - Bulk import localization entries
+    - `import_string_table_csv(string_table_path, csv_data)` - Import localization CSV
+    - `export_string_table_csv(string_table_path)` - Export localization CSV
+    - `add_gameplay_tag(tag, comment)` - Add Gameplay Tags to project config
+    - `list_gameplay_tags()` - List Gameplay Tags from project config
+    - `apply_gameplay_tags(tags, actor, asset_path)` - Apply tags to actors or GameplayTagContainer assets
+    - `create_input_action(name, path, value_type)` - Create Enhanced Input Actions
+    - `create_input_mapping_context(name, path)` - Create Enhanced Input Mapping Contexts
+    - `add_input_mapping(mapping_context_path, input_action_path, key)` - Map keys to Input Actions
+    - `create_niagara_system(name, path)` - Create Niagara Systems
+    - `create_niagara_emitter(name, path)` - Create Niagara Emitters
+    - `spawn_niagara_system(system_path, location, parameters)` - Spawn Niagara VFX
+    - `create_sound_cue(name, path)` - Create Sound Cues
+    - `spawn_sound(sound_path, location, volume, pitch)` - Play sounds in the editor world
+    - `create_collision_profile(name, object_type, collision_enabled)` - Add collision profiles
+    - `create_collision_channel(name, default_response, trace_type)` - Add collision channels
+    - `create_functional_test(name, location)` - Spawn Functional Test actors
+    - `run_automation_tests(filter)` - Start editor automation tests
+    - `line_trace(start, end, channel)` - Query scene hits in the editor world
+    - `find_actors_in_radius(location, radius, class_filter)` - Spatial actor query
+    - `find_actors_by_tag(tag)` - Find actors by tag
+    - `get_actor_distance(actor_a, actor_b)` - Measure actor distance
+    - `get_asset_referencers(asset_path)` - List package referencers for an asset
+    - `validate_assets(path)` - Load and report asset validation issues
+    - `validate_blueprint_graph(blueprint_path)` - Detect orphan nodes and loose pins
+    - `create_save_game_blueprint(name, path)` - Create SaveGame Blueprints
     
     ## Best Practices
     

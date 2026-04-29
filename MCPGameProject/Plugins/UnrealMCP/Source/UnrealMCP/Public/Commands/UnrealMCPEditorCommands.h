@@ -48,4 +48,12 @@ private:
     TSharedPtr<FJsonObject> HandleSetViewportDisplayMode(const TSharedPtr<FJsonObject>& Params);
     TSharedPtr<FJsonObject> HandleGetViewportDisplayMode(const TSharedPtr<FJsonObject>& Params);
     TSharedPtr<FJsonObject> HandleSetViewportShowFlags(const TSharedPtr<FJsonObject>& Params);
+
+    // Phase 1: Core Editor Enhancements
+    TSharedPtr<FJsonObject> HandleUndoLastAction(const TSharedPtr<FJsonObject>& Params);
+    TSharedPtr<FJsonObject> HandleRedoLastAction(const TSharedPtr<FJsonObject>& Params);
+    TSharedPtr<FJsonObject> HandleBulkSetActorTransform(const TSharedPtr<FJsonObject>& Params);
+    TSharedPtr<FJsonObject> HandleExportLevelToJson(const TSharedPtr<FJsonObject>& Params);
+    TSharedPtr<FJsonObject> HandleDuplicateActor(const TSharedPtr<FJsonObject>& Params);
+    TSharedPtr<FJsonObject> HandleSetActorMaterial(const TSharedPtr<FJsonObject>& Params);
 };

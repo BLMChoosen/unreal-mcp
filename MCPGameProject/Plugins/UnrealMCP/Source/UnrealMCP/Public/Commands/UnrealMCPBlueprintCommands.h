@@ -26,6 +26,9 @@ private:
     TSharedPtr<FJsonObject> HandleSetStaticMeshProperties(const TSharedPtr<FJsonObject>& Params);
     TSharedPtr<FJsonObject> HandleSetPawnProperties(const TSharedPtr<FJsonObject>& Params);
 
+    // Phase 1: Blueprint Hot Reload
+    TSharedPtr<FJsonObject> HandleHotReloadBlueprint(const TSharedPtr<FJsonObject>& Params);
+
     // Helper functions
     TSharedPtr<FJsonObject> AddComponentToBlueprint(const FString& BlueprintName, const FString& ComponentType, 
                                                    const FString& ComponentName, const FString& MeshType,
