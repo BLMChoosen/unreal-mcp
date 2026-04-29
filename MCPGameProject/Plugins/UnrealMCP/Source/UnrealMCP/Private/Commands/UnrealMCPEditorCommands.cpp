@@ -1089,3 +1089,42 @@ TSharedPtr<FJsonObject> FUnrealMCPEditorCommands::HandleSetViewportShowFlags(con
     Result->SetBoolField(TEXT("enabled"), bEnabled);
     return Result;
 } 
+
+
+// ===== Phase 1: Core Editor Enhancements =====
+TSharedPtr<FJsonObject> FUnrealMCPEditorCommands::HandleUndoLastAction(const TSharedPtr<FJsonObject>& Params)
+{
+    if (GEditor) { GEditor->UndoTransaction(); }
+    TSharedPtr<FJsonObject> Result = MakeShared<FJsonObject>();
+    Result->SetBoolField(TEXT("success"), true);
+    return Result;
+}
+
+TSharedPtr<FJsonObject> FUnrealMCPEditorCommands::HandleRedoLastAction(const TSharedPtr<FJsonObject>& Params)
+{
+    if (GEditor) { GEditor->RedoTransaction(); }
+    TSharedPtr<FJsonObject> Result = MakeShared<FJsonObject>();
+    Result->SetBoolField(TEXT("success"), true);
+    return Result;
+}
+
+TSharedPtr<FJsonObject> FUnrealMCPEditorCommands::HandleBulkSetActorTransform(const TSharedPtr<FJsonObject>& Params)
+{
+    return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("BulkSetActorTransform not implemented yet."));
+}
+
+TSharedPtr<FJsonObject> FUnrealMCPEditorCommands::HandleExportLevelToJson(const TSharedPtr<FJsonObject>& Params)
+{
+    return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("ExportLevelToJson not implemented yet."));
+}
+
+TSharedPtr<FJsonObject> FUnrealMCPEditorCommands::HandleDuplicateActor(const TSharedPtr<FJsonObject>& Params)
+{
+    return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("DuplicateActor not implemented yet."));
+}
+
+TSharedPtr<FJsonObject> FUnrealMCPEditorCommands::HandleSetActorMaterial(const TSharedPtr<FJsonObject>& Params)
+{
+    return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("SetActorMaterial not implemented yet."));
+}
+

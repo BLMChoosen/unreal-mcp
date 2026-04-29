@@ -252,7 +252,13 @@ FString UUnrealMCPBridge::ExecuteCommand(const FString& CommandType, const TShar
                      CommandType == TEXT("select_actors_by_tag") ||
                      CommandType == TEXT("set_viewport_display_mode") ||
                      CommandType == TEXT("get_viewport_display_mode") ||
-                     CommandType == TEXT("set_viewport_show_flags"))
+                     CommandType == TEXT("set_viewport_show_flags") ||
+                     CommandType == TEXT("undo_last_action") ||
+                     CommandType == TEXT("redo_last_action") ||
+                     CommandType == TEXT("bulk_set_actor_transform") ||
+                     CommandType == TEXT("export_level_to_json") ||
+                     CommandType == TEXT("duplicate_actor") ||
+                     CommandType == TEXT("set_actor_material"))
             {
                 ResultJson = EditorCommands->HandleCommand(CommandType, Params);
             }
@@ -264,7 +270,8 @@ FString UUnrealMCPBridge::ExecuteCommand(const FString& CommandType, const TShar
                      CommandType == TEXT("compile_blueprint") || 
                      CommandType == TEXT("set_blueprint_property") || 
                      CommandType == TEXT("set_static_mesh_properties") ||
-                     CommandType == TEXT("set_pawn_properties"))
+                     CommandType == TEXT("set_pawn_properties") ||
+                     CommandType == TEXT("hot_reload_blueprint"))
             {
                 ResultJson = BlueprintCommands->HandleCommand(CommandType, Params);
             }
@@ -289,7 +296,17 @@ FString UUnrealMCPBridge::ExecuteCommand(const FString& CommandType, const TShar
                      CommandType == TEXT("add_while_loop_node") ||
                      CommandType == TEXT("add_timeline_node") ||
                      CommandType == TEXT("add_timeline_float_track") ||
-                     CommandType == TEXT("add_timeline_keyframe"))
+                     CommandType == TEXT("add_timeline_keyframe") ||
+                     CommandType == TEXT("create_blueprint_function") ||
+                     CommandType == TEXT("create_blueprint_macro") ||
+                     CommandType == TEXT("create_blueprint_custom_event_graph") ||
+                     CommandType == TEXT("add_node_by_class") ||
+                     CommandType == TEXT("connect_pins_validated") ||
+                     CommandType == TEXT("set_pin_default_value") ||
+                     CommandType == TEXT("add_custom_event_node") ||
+                     CommandType == TEXT("list_blueprint_functions") ||
+                     CommandType == TEXT("get_node_pins") ||
+                     CommandType == TEXT("delete_blueprint_node"))
             {
                 ResultJson = BlueprintNodeCommands->HandleCommand(CommandType, Params);
             }

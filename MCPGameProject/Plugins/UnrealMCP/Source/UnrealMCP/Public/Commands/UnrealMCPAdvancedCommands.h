@@ -57,4 +57,29 @@ private:
 	static TSharedPtr<FJsonObject> HandleValidateAssets(const TSharedPtr<FJsonObject>& Params);
 	static TSharedPtr<FJsonObject> HandleValidateBlueprintGraph(const TSharedPtr<FJsonObject>& Params);
 	static TSharedPtr<FJsonObject> HandleCreateSaveGameBlueprint(const TSharedPtr<FJsonObject>& Params);
+
+    // Phase 3/5/6 Extended Advanced Tools
+    static TSharedPtr<FJsonObject> HandleCreateBtTaskBlueprint(const TSharedPtr<FJsonObject>& Params);
+    static TSharedPtr<FJsonObject> HandleCreateBtServiceBlueprint(const TSharedPtr<FJsonObject>& Params);
+    static TSharedPtr<FJsonObject> HandleAddBtRunEqsQuery(const TSharedPtr<FJsonObject>& Params);
+    static TSharedPtr<FJsonObject> HandleSetBtNodeBlackboardKey(const TSharedPtr<FJsonObject>& Params);
+    static TSharedPtr<FJsonObject> HandleCreateFullAiSetup(const TSharedPtr<FJsonObject>& Params);
+    static TSharedPtr<FJsonObject> HandleCreateSaveGameWithVariables(const TSharedPtr<FJsonObject>& Params);
+    static TSharedPtr<FJsonObject> HandleGenerateSaveLoadFunctions(const TSharedPtr<FJsonObject>& Params);
+    static TSharedPtr<FJsonObject> HandleSetupEnhancedInputRuntime(const TSharedPtr<FJsonObject>& Params);
+    static TSharedPtr<FJsonObject> HandleBindInputActionToEvent(const TSharedPtr<FJsonObject>& Params);
+    static TSharedPtr<FJsonObject> HandleCreatePlayerControllerWithInput(const TSharedPtr<FJsonObject>& Params);
+    static TSharedPtr<FJsonObject> HandleAddNiagaraUserParameter(const TSharedPtr<FJsonObject>& Params);
+    static TSharedPtr<FJsonObject> HandleAddNiagaraEmitterToSystem(const TSharedPtr<FJsonObject>& Params);
+    static TSharedPtr<FJsonObject> HandleCreateVfxPreset(const TSharedPtr<FJsonObject>& Params);
+    static TSharedPtr<FJsonObject> HandleCreateSoundAttenuation(const TSharedPtr<FJsonObject>& Params);
+    static TSharedPtr<FJsonObject> HandleCreateSoundMix(const TSharedPtr<FJsonObject>& Params);
+    static TSharedPtr<FJsonObject> HandleConfigureSoundCueNodes(const TSharedPtr<FJsonObject>& Params);
+    static TSharedPtr<FJsonObject> HandleAttachSoundToActor(const TSharedPtr<FJsonObject>& Params);
+    static TSharedPtr<FJsonObject> HandleCreateEnemyAiArchetype(const TSharedPtr<FJsonObject>& Params);
+    static TSharedPtr<FJsonObject> HandleCreateInteractableArchetype(const TSharedPtr<FJsonObject>& Params);
+    static TSharedPtr<FJsonObject> HandleCreatePickupItemArchetype(const TSharedPtr<FJsonObject>& Params);
+    static TSharedPtr<FJsonObject> HandlePreviewOperation(const TSharedPtr<FJsonObject>& Params);
+    static TSharedPtr<FJsonObject> HandleGetUndoHistory(const TSharedPtr<FJsonObject>& Params);
+
 };

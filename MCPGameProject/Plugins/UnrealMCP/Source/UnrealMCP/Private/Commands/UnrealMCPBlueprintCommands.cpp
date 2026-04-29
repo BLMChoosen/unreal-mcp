@@ -1158,3 +1158,11 @@ TSharedPtr<FJsonObject> FUnrealMCPBlueprintCommands::HandleSetPawnProperties(con
     ResponseObj->SetObjectField(TEXT("results"), ResultsObj);
     return ResponseObj;
 } 
+
+
+// ===== Phase 1: Blueprint Hot Reload =====
+TSharedPtr<FJsonObject> FUnrealMCPBlueprintCommands::HandleHotReloadBlueprint(const TSharedPtr<FJsonObject>& Params)
+{
+    return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("HotReloadBlueprint not implemented yet."));
+}
+

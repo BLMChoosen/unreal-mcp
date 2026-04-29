@@ -40,7 +40,9 @@ public class UnrealMCP : ModuleRules
 				"GameplayTasks",
 				"GameplayTags",
 				"EnhancedInput",
-				"Niagara"
+				"Niagara",
+				"PhysicsCore",
+				"Chaos"
 			}
 		);
 		

@@ -1716,3 +1716,36 @@ TSharedPtr<FJsonObject> FUnrealMCPBlueprintNodeCommands::HandleAddTimelineKeyfra
     Result->SetBoolField(TEXT("success"), true);
     return Result;
 }
+
+
+// ===== Phase 2: Extended Blueprint Graph Authoring =====
+TSharedPtr<FJsonObject> FUnrealMCPBlueprintNodeCommands::HandleCreateBlueprintFunction(const TSharedPtr<FJsonObject>& Params)
+{ return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Not implemented yet.")); }
+
+TSharedPtr<FJsonObject> FUnrealMCPBlueprintNodeCommands::HandleCreateBlueprintMacro(const TSharedPtr<FJsonObject>& Params)
+{ return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Not implemented yet.")); }
+
+TSharedPtr<FJsonObject> FUnrealMCPBlueprintNodeCommands::HandleCreateBlueprintCustomEventGraph(const TSharedPtr<FJsonObject>& Params)
+{ return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Not implemented yet.")); }
+
+TSharedPtr<FJsonObject> FUnrealMCPBlueprintNodeCommands::HandleAddNodeByClass(const TSharedPtr<FJsonObject>& Params)
+{ return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Not implemented yet.")); }
+
+TSharedPtr<FJsonObject> FUnrealMCPBlueprintNodeCommands::HandleConnectPinsValidated(const TSharedPtr<FJsonObject>& Params)
+{ return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Not implemented yet.")); }
+
+TSharedPtr<FJsonObject> FUnrealMCPBlueprintNodeCommands::HandleSetPinDefaultValue(const TSharedPtr<FJsonObject>& Params)
+{ return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Not implemented yet.")); }
+
+TSharedPtr<FJsonObject> FUnrealMCPBlueprintNodeCommands::HandleAddCustomEventNode(const TSharedPtr<FJsonObject>& Params)
+{ return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Not implemented yet.")); }
+
+TSharedPtr<FJsonObject> FUnrealMCPBlueprintNodeCommands::HandleListBlueprintFunctions(const TSharedPtr<FJsonObject>& Params)
+{ return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Not implemented yet.")); }
+
+TSharedPtr<FJsonObject> FUnrealMCPBlueprintNodeCommands::HandleGetNodePins(const TSharedPtr<FJsonObject>& Params)
+{ return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Not implemented yet.")); }
+
+TSharedPtr<FJsonObject> FUnrealMCPBlueprintNodeCommands::HandleDeleteBlueprintNode(const TSharedPtr<FJsonObject>& Params)
+{ return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Not implemented yet.")); }
+

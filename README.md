@@ -341,6 +341,33 @@ An example is found in `mcp.json` at the project root.
 - **sequencer_tools** — Create Sequences, add tracks, control cinematics timeline
 </details>
 
+<details>
+<summary><strong>Validation & Diagnostics Tools (validation_tools + diagnostics_tools)</strong></summary>
+
+- `find_unused_assets()` — Locate assets with zero references
+- `validate_naming_conventions()` — Ensure assets follow standard UE naming conventions
+- `get_blueprint_compile_errors()` — Retrieve compile errors from blueprints
+- `get_editor_warnings()` — Retrieve the current editor message log warnings
+</details>
+
+<details>
+<summary><strong>Level Design & Physics Tools (level_design_tools + physics_tools)</strong></summary>
+
+- `snap_actor_to_grid(actor, grid_size)` — Snap actor transform to grid
+- `procedural_scatter(mesh, area, density)` — Scatter meshes across a surface
+- `create_physics_constraint(actor1, actor2)` — Connect actors via Physics Constraint
+- `enable_chaos_destruction(actor)` — Convert static mesh to Geometry Collection
+</details>
+
+<details>
+<summary><strong>Agent-Friendly & Meta Tools (recipe_tools + policy_tools + diff_tools)</strong></summary>
+
+- `create_enemy_ai_archetype()` — High-level recipe to scaffold a complete AI character
+- `create_interactable_archetype()` — High-level recipe to scaffold a door or chest
+- `preview_operation()` — Get a JSON diff of what a command will do before applying
+- `auto_organize_assets()` — Move assets into standard folders based on their type
+</details>
+
 ## License
 MIT
 

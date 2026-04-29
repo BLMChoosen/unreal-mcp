@@ -674,7 +674,31 @@ TSharedPtr<FJsonObject> FUnrealMCPAdvancedCommands::HandleCommand(const FString&
 		return HandleCreateSaveGameBlueprint(Params);
 	}
 
-	return FUnrealMCPCommonUtils::CreateErrorResponse(FString::Printf(TEXT("Unknown advanced command: %s"), *CommandType));
+	
+    if (CommandType == TEXT("create_bt_task_blueprint")) return HandleCreateBtTaskBlueprint(Params);
+    if (CommandType == TEXT("create_bt_service_blueprint")) return HandleCreateBtServiceBlueprint(Params);
+    if (CommandType == TEXT("add_bt_run_eqs_query")) return HandleAddBtRunEqsQuery(Params);
+    if (CommandType == TEXT("set_bt_node_blackboard_key")) return HandleSetBtNodeBlackboardKey(Params);
+    if (CommandType == TEXT("create_full_ai_setup")) return HandleCreateFullAiSetup(Params);
+    if (CommandType == TEXT("create_save_game_with_variables")) return HandleCreateSaveGameWithVariables(Params);
+    if (CommandType == TEXT("generate_save_load_functions")) return HandleGenerateSaveLoadFunctions(Params);
+    if (CommandType == TEXT("setup_enhanced_input_runtime")) return HandleSetupEnhancedInputRuntime(Params);
+    if (CommandType == TEXT("bind_input_action_to_event")) return HandleBindInputActionToEvent(Params);
+    if (CommandType == TEXT("create_player_controller_with_input")) return HandleCreatePlayerControllerWithInput(Params);
+    if (CommandType == TEXT("add_niagara_user_parameter")) return HandleAddNiagaraUserParameter(Params);
+    if (CommandType == TEXT("add_niagara_emitter_to_system")) return HandleAddNiagaraEmitterToSystem(Params);
+    if (CommandType == TEXT("create_vfx_preset")) return HandleCreateVfxPreset(Params);
+    if (CommandType == TEXT("create_sound_attenuation")) return HandleCreateSoundAttenuation(Params);
+    if (CommandType == TEXT("create_sound_mix")) return HandleCreateSoundMix(Params);
+    if (CommandType == TEXT("configure_sound_cue_nodes")) return HandleConfigureSoundCueNodes(Params);
+    if (CommandType == TEXT("attach_sound_to_actor")) return HandleAttachSoundToActor(Params);
+    if (CommandType == TEXT("create_enemy_ai_archetype")) return HandleCreateEnemyAiArchetype(Params);
+    if (CommandType == TEXT("create_interactable_archetype")) return HandleCreateInteractableArchetype(Params);
+    if (CommandType == TEXT("create_pickup_item_archetype")) return HandleCreatePickupItemArchetype(Params);
+    if (CommandType == TEXT("preview_operation")) return HandlePreviewOperation(Params);
+    if (CommandType == TEXT("get_undo_history")) return HandleGetUndoHistory(Params);
+
+    return FUnrealMCPCommonUtils::CreateErrorResponse(FString::Printf(TEXT("Unknown advanced command: %s"), *CommandType));
 }
 
 TSharedPtr<FJsonObject> FUnrealMCPAdvancedCommands::HandleCreateAIControllerBlueprint(const TSharedPtr<FJsonObject>& Params)
@@ -1914,3 +1938,27 @@ TSharedPtr<FJsonObject> FUnrealMCPAdvancedCommands::HandleCreateSaveGameBlueprin
 	UBlueprint* Blueprint = nullptr;
 	return CreateBlueprintAsset(Name, Path, USaveGame::StaticClass(), Blueprint);
 }
+
+// Phase 3/5/6 Extended Advanced Tools
+TSharedPtr<FJsonObject> FUnrealMCPAdvancedCommands::HandleCreateBtTaskBlueprint(const TSharedPtr<FJsonObject>& Params) { return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Not implemented")); }
+TSharedPtr<FJsonObject> FUnrealMCPAdvancedCommands::HandleCreateBtServiceBlueprint(const TSharedPtr<FJsonObject>& Params) { return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Not implemented")); }
+TSharedPtr<FJsonObject> FUnrealMCPAdvancedCommands::HandleAddBtRunEqsQuery(const TSharedPtr<FJsonObject>& Params) { return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Not implemented")); }
+TSharedPtr<FJsonObject> FUnrealMCPAdvancedCommands::HandleSetBtNodeBlackboardKey(const TSharedPtr<FJsonObject>& Params) { return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Not implemented")); }
+TSharedPtr<FJsonObject> FUnrealMCPAdvancedCommands::HandleCreateFullAiSetup(const TSharedPtr<FJsonObject>& Params) { return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Not implemented")); }
+TSharedPtr<FJsonObject> FUnrealMCPAdvancedCommands::HandleCreateSaveGameWithVariables(const TSharedPtr<FJsonObject>& Params) { return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Not implemented")); }
+TSharedPtr<FJsonObject> FUnrealMCPAdvancedCommands::HandleGenerateSaveLoadFunctions(const TSharedPtr<FJsonObject>& Params) { return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Not implemented")); }
+TSharedPtr<FJsonObject> FUnrealMCPAdvancedCommands::HandleSetupEnhancedInputRuntime(const TSharedPtr<FJsonObject>& Params) { return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Not implemented")); }
+TSharedPtr<FJsonObject> FUnrealMCPAdvancedCommands::HandleBindInputActionToEvent(const TSharedPtr<FJsonObject>& Params) { return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Not implemented")); }
+TSharedPtr<FJsonObject> FUnrealMCPAdvancedCommands::HandleCreatePlayerControllerWithInput(const TSharedPtr<FJsonObject>& Params) { return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Not implemented")); }
+TSharedPtr<FJsonObject> FUnrealMCPAdvancedCommands::HandleAddNiagaraUserParameter(const TSharedPtr<FJsonObject>& Params) { return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Not implemented")); }
+TSharedPtr<FJsonObject> FUnrealMCPAdvancedCommands::HandleAddNiagaraEmitterToSystem(const TSharedPtr<FJsonObject>& Params) { return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Not implemented")); }
+TSharedPtr<FJsonObject> FUnrealMCPAdvancedCommands::HandleCreateVfxPreset(const TSharedPtr<FJsonObject>& Params) { return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Not implemented")); }
+TSharedPtr<FJsonObject> FUnrealMCPAdvancedCommands::HandleCreateSoundAttenuation(const TSharedPtr<FJsonObject>& Params) { return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Not implemented")); }
+TSharedPtr<FJsonObject> FUnrealMCPAdvancedCommands::HandleCreateSoundMix(const TSharedPtr<FJsonObject>& Params) { return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Not implemented")); }
+TSharedPtr<FJsonObject> FUnrealMCPAdvancedCommands::HandleConfigureSoundCueNodes(const TSharedPtr<FJsonObject>& Params) { return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Not implemented")); }
+TSharedPtr<FJsonObject> FUnrealMCPAdvancedCommands::HandleAttachSoundToActor(const TSharedPtr<FJsonObject>& Params) { return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Not implemented")); }
+TSharedPtr<FJsonObject> FUnrealMCPAdvancedCommands::HandleCreateEnemyAiArchetype(const TSharedPtr<FJsonObject>& Params) { return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Not implemented")); }
+TSharedPtr<FJsonObject> FUnrealMCPAdvancedCommands::HandleCreateInteractableArchetype(const TSharedPtr<FJsonObject>& Params) { return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Not implemented")); }
+TSharedPtr<FJsonObject> FUnrealMCPAdvancedCommands::HandleCreatePickupItemArchetype(const TSharedPtr<FJsonObject>& Params) { return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Not implemented")); }
+TSharedPtr<FJsonObject> FUnrealMCPAdvancedCommands::HandlePreviewOperation(const TSharedPtr<FJsonObject>& Params) { return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Not implemented")); }
+TSharedPtr<FJsonObject> FUnrealMCPAdvancedCommands::HandleGetUndoHistory(const TSharedPtr<FJsonObject>& Params) { return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Not implemented")); }
