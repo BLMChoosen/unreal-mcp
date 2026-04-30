@@ -23,6 +23,7 @@
 #include "Commands/UnrealMCPPhysicsCommands.h"
 #include "Commands/UnrealMCPDiagnosticsCommands.h"
 #include "Commands/UnrealMCPPolicyCommands.h"
+#include "Commands/UnrealMCPExtendedCommands.h"
 #include "UnrealMCPBridge.generated.h"
 
 class FMCPServerRunnable;
@@ -80,5 +81,6 @@ private:
 	// FUnrealMCPSchemaCommands, FUnrealMCPValidationCommands,
 	// FUnrealMCPLevelDesignCommands, FUnrealMCPPhysicsCommands,
 	// FUnrealMCPDiagnosticsCommands, FUnrealMCPPolicyCommands
+	// FUnrealMCPExtendedCommands
 	// FUnrealMCPAdvancedCommands (already static)
 };

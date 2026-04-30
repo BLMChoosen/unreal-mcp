@@ -1,0 +1,43 @@
+2026-04-29 21:00:43,292 - mcp.server.lowlevel.server - DEBUG - [server.py:145] - Initializing server 'UnrealMCP'
+2026-04-29 21:00:43,292 - mcp.server.lowlevel.server - DEBUG - [server.py:384] - Registering handler for ListToolsRequest
+2026-04-29 21:00:43,293 - mcp.server.lowlevel.server - DEBUG - [server.py:406] - Registering handler for CallToolRequest
+2026-04-29 21:00:43,293 - mcp.server.lowlevel.server - DEBUG - [server.py:252] - Registering handler for ListResourcesRequest
+2026-04-29 21:00:43,293 - mcp.server.lowlevel.server - DEBUG - [server.py:286] - Registering handler for ReadResourceRequest
+2026-04-29 21:00:43,293 - mcp.server.lowlevel.server - DEBUG - [server.py:222] - Registering handler for PromptListRequest
+2026-04-29 21:00:43,293 - mcp.server.lowlevel.server - DEBUG - [server.py:239] - Registering handler for GetPromptRequest
+2026-04-29 21:00:43,293 - mcp.server.lowlevel.server - DEBUG - [server.py:267] - Registering handler for ListResourceTemplatesRequest
+2026-04-29 21:00:43,343 - UnrealMCP - INFO - [editor_tools.py:746] - Editor tools registered successfully
+2026-04-29 21:00:43,351 - UnrealMCP - INFO - [blueprint_tools.py:448] - Blueprint tools registered successfully
+2026-04-29 21:00:43,380 - UnrealMCP - INFO - [node_tools.py:1100] - Blueprint node tools registered successfully
+2026-04-29 21:00:43,381 - UnrealMCP - INFO - [project_tools.py:64] - Project tools registered successfully
+2026-04-29 21:00:43,387 - UnrealMCP - INFO - [umg_tools.py:333] - UMG tools registered successfully
+2026-04-29 21:00:43,391 - UnrealMCP - INFO - [material_tools.py:153] - Material tools registered successfully
+2026-04-29 21:00:43,395 - UnrealMCP - INFO - [level_tools.py:144] - Level tools registered successfully
+2026-04-29 21:00:43,398 - UnrealMCP - INFO - [asset_tools.py:105] - Asset tools registered successfully
+2026-04-29 21:00:43,404 - UnrealMCP - INFO - [sequencer_tools.py:201] - Sequencer tools registered successfully
+2026-04-29 21:00:43,419 - UnrealMCP - INFO - [behavior_tree_tools.py:322] - Behavior tree tools registered successfully
+2026-04-29 21:00:43,469 - UnrealMCP - INFO - [advanced_tools.py:1007] - Advanced tools registered successfully
+2026-04-29 21:00:43,474 - UnrealMCP - INFO - [schema_tools.py:179] - Schema tools registered successfully
+2026-04-29 21:00:43,479 - UnrealMCP - INFO - [validation_tools.py:165] - Validation tools registered successfully
+2026-04-29 21:00:43,485 - UnrealMCP - INFO - [level_design_tools.py:168] - Level design tools registered successfully
+2026-04-29 21:00:43,489 - UnrealMCP - INFO - [physics_tools.py:134] - Physics tools registered successfully
+2026-04-29 21:00:43,494 - UnrealMCP - INFO - [recipe_tools.py:140] - Recipe tools registered successfully
+2026-04-29 21:00:43,496 - UnrealMCP - INFO - [diff_tools.py:64] - Diff/preview tools registered successfully
+2026-04-29 21:00:43,501 - UnrealMCP - INFO - [policy_tools.py:121] - Policy tools registered successfully
+2026-04-29 21:00:43,505 - UnrealMCP - INFO - [diagnostics_tools.py:111] - Diagnostics tools registered successfully
+2026-04-29 21:00:43,517 - UnrealMCP - INFO - [pcg_landscape_tools.py:172] - PCG and landscape tools registered successfully
+2026-04-29 21:00:43,524 - UnrealMCP - INFO - [animation_tools.py:174] - Animation tools registered successfully
+2026-04-29 21:00:43,529 - UnrealMCP - INFO - [metasound_tools.py:114] - MetaSound tools registered successfully
+2026-04-29 21:00:43,531 - UnrealMCP - INFO - [art_direction_tools.py:61] - Art direction tools registered successfully
+2026-04-29 21:00:43,534 - UnrealMCP - INFO - [optimization_tools.py:81] - Optimization tools registered successfully
+2026-04-29 21:00:43,540 - UnrealMCP - INFO - [source_control_tools.py:140] - Source control tools registered successfully
+2026-04-29 21:00:43,542 - UnrealMCP - INFO - [cpp_tools.py:141] - C++ tools registered successfully
+2026-04-29 21:00:43,545 - UnrealMCP - INFO - [multiplayer_tools.py:103] - Multiplayer tools registered successfully
+2026-04-29 21:51:31,285 - mcp.server.lowlevel.server - DEBUG - [server.py:145] - Initializing server 'UnrealMCP'
+2026-04-29 21:51:31,285 - mcp.server.lowlevel.server - DEBUG - [server.py:384] - Registering handler for ListToolsRequest
+2026-04-29 21:51:31,285 - mcp.server.lowlevel.server - DEBUG - [server.py:406] - Registering handler for CallToolRequest
+2026-04-29 21:51:31,285 - mcp.server.lowlevel.server - DEBUG - [server.py:252] - Registering handler for ListResourcesRequest
+2026-04-29 21:51:31,285 - mcp.server.lowlevel.server - DEBUG - [server.py:286] - Registering handler for ReadResourceRequest
+2026-04-29 21:51:31,285 - mcp.server.lowlevel.server - DEBUG - [server.py:222] - Registering handler for PromptListRequest
+2026-04-29 21:51:31,285 - mcp.server.lowlevel.server - DEBUG - [server.py:239] - Registering handler for GetPromptRequest
+2026-04-29 21:51:31,285 - mcp.server.lowlevel.server - DEBUG - [server.py:267] - Registering handler for ListResourceTemplatesRequest

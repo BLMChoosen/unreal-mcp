@@ -23,7 +23,7 @@ This project is currently in an **EXPERIMENTAL** state. The API, functionality, 
 
 ## 🌟 Overview
 
-The Unreal MCP integration provides a comprehensive suite of tools for controlling Unreal Engine through natural language, organized into 13 tool modules:
+The Unreal MCP integration provides a comprehensive suite of tools for controlling Unreal Engine through natural language, organized into core editor modules plus Unreal 5 production workflow modules:
 
 | Category | Capabilities |
 |----------|-------------|
@@ -40,6 +40,14 @@ The Unreal MCP integration provides a comprehensive suite of tools for controlli
 | **Data Tools** | Create/edit Data Tables, Data Assets, String Tables with CSV/JSON support |
 | **Advanced Design Tools** | Gameplay Tags, Enhanced Input, Niagara VFX, Sound Cues, collision config, world queries, asset validation |
 | **Project Tools** | Create input mappings and configure project settings |
+| **PCG & Landscape** | Create PCG graph assets/specs, spawn PCG volumes, scatter prompt-driven biomes, apply landscape materials, create road splines |
+| **Animation & Retargeting** | Create AnimBPs, Blend Spaces, Montages, IK Rigs, IK Retargeters, notify specs, and state machine specs |
+| **MetaSound & Dialogue** | Create MetaSound Source assets/specs and import dialogue JSON with optional Sound Wave imports |
+| **Art Direction** | Apply lighting, fog, sky, and post-process presets from prompts |
+| **Optimization & Profiling** | Audit Nanite/texture budgets, batch-toggle Nanite, request HLODs, toggle profiling stats |
+| **Source Control** | Git/Perforce status, diff, commit/submit helpers, and binary `.uasset` conflict summaries |
+| **C++ & Live Coding** | Generate Unreal C++ class boilerplate and trigger editor Live Coding compile |
+| **Multiplayer** | Set Blueprint variable replication and create RunOnServer/Client/Multicast RPC custom events |
 
 All capabilities are accessible through natural language commands via AI assistants, making it easy to automate and control Unreal Engine workflows.
 
@@ -58,7 +66,7 @@ All capabilities are accessible through natural language commands via AI assista
 - Manages TCP socket connections to the C++ plugin
 - Handles command serialization and response parsing
 - Provides error handling and connection management
-- Loads and registers 13 tool modules from the `tools/` directory
+- Loads and registers tool modules from the `tools/` directory
 - Uses the FastMCP library to implement the Model Context Protocol
 
 ## 📂 Directory Structure
@@ -75,6 +83,7 @@ unreal-mcp/
 │   │   ├── editor_tools.py       # Actor management & viewport control
 │   │   ├── blueprint_tools.py    # Blueprint creation & configuration
 │   │   ├── node_tools.py         # Blueprint node graph editing
+│   │   ├── blueprint_deep_graph_tools.py # Advanced Blueprint graph authoring
 │   │   ├── umg_tools.py          # UMG widget development
 │   │   ├── material_tools.py     # Material & material instance tools
 │   │   ├── level_tools.py        # Level management
@@ -84,7 +93,15 @@ unreal-mcp/
 │   │   ├── behavior_tree_tools.py# Behavior Tree node tools
 │   │   ├── data_tools.py         # Data Table, Data Asset, String Table
 │   │   ├── advanced_tools.py     # Gameplay Tags, EQS, Niagara, Audio, etc.
-│   │   └── project_tools.py      # Project settings & input mappings
+│   │   ├── project_tools.py      # Project settings & input mappings
+│   │   ├── pcg_landscape_tools.py# PCG, biome, landscape, and spline helpers
+│   │   ├── animation_tools.py    # AnimBP, Montage, Blend Space, IK setup
+│   │   ├── metasound_tools.py    # MetaSound and dialogue audio
+│   │   ├── art_direction_tools.py# Lighting/post-process presets
+│   │   ├── optimization_tools.py # Nanite, HLOD, profiling audits
+│   │   ├── source_control_tools.py# Git/Perforce helpers
+│   │   ├── cpp_tools.py          # C++ class wizard and Live Coding
+│   │   └── multiplayer_tools.py  # Replication and RPC helpers
 │   ├── scripts/                  # Example scripts and demos
 │   └── unreal_mcp_server.py      # MCP server entry point
 │

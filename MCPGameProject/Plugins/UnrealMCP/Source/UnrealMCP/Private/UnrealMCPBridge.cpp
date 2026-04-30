@@ -60,6 +60,7 @@
 #include "Commands/UnrealMCPAICommands.h"
 #include "Commands/UnrealMCPDataCommands.h"
 #include "Commands/UnrealMCPAdvancedCommands.h"
+#include "Commands/UnrealMCPExtendedCommands.h"
 
 // Default settings
 #define MCP_SERVER_HOST "127.0.0.1"
@@ -306,7 +307,51 @@ FString UUnrealMCPBridge::ExecuteCommand(const FString& CommandType, const TShar
                      CommandType == TEXT("add_custom_event_node") ||
                      CommandType == TEXT("list_blueprint_functions") ||
                      CommandType == TEXT("get_node_pins") ||
-                     CommandType == TEXT("delete_blueprint_node"))
+                     CommandType == TEXT("delete_blueprint_node") ||
+                     CommandType == TEXT("add_blueprint_control_node") ||
+                     CommandType == TEXT("add_blueprint_cast_node") ||
+                     CommandType == TEXT("add_blueprint_math_node") ||
+                     CommandType == TEXT("set_variable_default_value") ||
+                     CommandType == TEXT("split_struct_pin") ||
+                     CommandType == TEXT("recombine_struct_pin") ||
+                     CommandType == TEXT("add_dynamic_pin_to_node") ||
+                     CommandType == TEXT("disconnect_blueprint_pin") ||
+                     CommandType == TEXT("move_blueprint_node") ||
+                     CommandType == TEXT("format_blueprint_nodes") ||
+                     CommandType == TEXT("add_function_entry_node") ||
+                     CommandType == TEXT("add_spawn_actor_node") ||
+                     CommandType == TEXT("create_blueprint_interface") ||
+                     CommandType == TEXT("add_interface_function") ||
+                     CommandType == TEXT("implement_interface") ||
+                     CommandType == TEXT("add_interface_message_node") ||
+                     CommandType == TEXT("create_event_dispatcher") ||
+                     CommandType == TEXT("add_event_dispatcher_node") ||
+                     CommandType == TEXT("set_variable_container_type") ||
+                     CommandType == TEXT("add_collection_node") ||
+                     CommandType == TEXT("add_collection_nodes") ||
+                     CommandType == TEXT("export_nodes_as_text") ||
+                     CommandType == TEXT("paste_nodes_from_text") ||
+                     CommandType == TEXT("add_local_variable") ||
+                     CommandType == TEXT("set_function_flags") ||
+                     CommandType == TEXT("add_format_text_node") ||
+                     CommandType == TEXT("add_switch_node") ||
+                     CommandType == TEXT("add_async_action_node") ||
+                     CommandType == TEXT("add_comment_box") ||
+                     CommandType == TEXT("collapse_to_function") ||
+                     CommandType == TEXT("collapse_to_macro") ||
+                     CommandType == TEXT("promote_to_variable") ||
+                     CommandType == TEXT("edit_construction_script") ||
+                     CommandType == TEXT("read_graph_logic_flow") ||
+                     CommandType == TEXT("inspect_node_pins") ||
+                     CommandType == TEXT("add_break_struct_node") ||
+                     CommandType == TEXT("add_make_struct_node") ||
+                     CommandType == TEXT("add_class_reference_node") ||
+                     CommandType == TEXT("add_bind_event_node") ||
+                     CommandType == TEXT("add_create_event_node") ||
+                     CommandType == TEXT("add_global_getter") ||
+                     CommandType == TEXT("add_math_expression_node") ||
+                     CommandType == TEXT("get_specific_node_error") ||
+                     CommandType == TEXT("resolve_wildcard_pin"))
             {
                 ResultJson = BlueprintNodeCommands->HandleCommand(CommandType, Params);
             }
@@ -518,6 +563,34 @@ FString UUnrealMCPBridge::ExecuteCommand(const FString& CommandType, const TShar
                      CommandType == TEXT("fix_redirectors"))
             {
                 ResultJson = FUnrealMCPPolicyCommands::HandleCommand(CommandType, Params);
+            }
+            // Extended Unreal 5 production workflow commands
+            else if (CommandType == TEXT("create_pcg_graph") ||
+                     CommandType == TEXT("configure_pcg_graph") ||
+                     CommandType == TEXT("create_pcg_volume") ||
+                     CommandType == TEXT("create_biome_from_prompt") ||
+                     CommandType == TEXT("create_landscape") ||
+                     CommandType == TEXT("apply_landscape_material") ||
+                     CommandType == TEXT("create_road_spline") ||
+                     CommandType == TEXT("create_anim_blueprint") ||
+                     CommandType == TEXT("create_blend_space") ||
+                     CommandType == TEXT("create_anim_montage_from_sequence") ||
+                     CommandType == TEXT("add_anim_notify") ||
+                     CommandType == TEXT("create_ik_rig") ||
+                     CommandType == TEXT("create_ik_retargeter") ||
+                     CommandType == TEXT("create_metasound_source") ||
+                     CommandType == TEXT("configure_metasound_graph") ||
+                     CommandType == TEXT("import_dialogue_batch") ||
+                     CommandType == TEXT("apply_lighting_preset") ||
+                     CommandType == TEXT("audit_optimization") ||
+                     CommandType == TEXT("set_nanite_enabled") ||
+                     CommandType == TEXT("generate_hlods") ||
+                     CommandType == TEXT("capture_profile_snapshot") ||
+                     CommandType == TEXT("trigger_live_coding_compile") ||
+                     CommandType == TEXT("set_blueprint_variable_replication") ||
+                     CommandType == TEXT("create_blueprint_rpc_event"))
+            {
+                ResultJson = FUnrealMCPExtendedCommands::HandleCommand(CommandType, Params);
             }
             else
             {

@@ -269,6 +269,7 @@ mcp = FastMCP(
 from tools.editor_tools import register_editor_tools
 from tools.blueprint_tools import register_blueprint_tools
 from tools.node_tools import register_blueprint_node_tools
+from tools.blueprint_deep_graph_tools import register_blueprint_deep_graph_tools
 from tools.project_tools import register_project_tools
 from tools.umg_tools import register_umg_tools
 from tools.material_tools import register_material_tools
@@ -287,11 +288,20 @@ from tools.recipe_tools import register_recipe_tools
 from tools.diff_tools import register_diff_tools
 from tools.policy_tools import register_policy_tools
 from tools.diagnostics_tools import register_diagnostics_tools
+from tools.pcg_landscape_tools import register_pcg_landscape_tools
+from tools.animation_tools import register_animation_tools
+from tools.metasound_tools import register_metasound_tools
+from tools.art_direction_tools import register_art_direction_tools
+from tools.optimization_tools import register_optimization_tools
+from tools.source_control_tools import register_source_control_tools
+from tools.cpp_tools import register_cpp_tools
+from tools.multiplayer_tools import register_multiplayer_tools
 
 # Register tools
 register_editor_tools(mcp)
 register_blueprint_tools(mcp)
 register_blueprint_node_tools(mcp)
+register_blueprint_deep_graph_tools(mcp)
 register_project_tools(mcp)
 register_umg_tools(mcp)
 register_material_tools(mcp)
@@ -310,6 +320,14 @@ register_recipe_tools(mcp)
 register_diff_tools(mcp)
 register_policy_tools(mcp)
 register_diagnostics_tools(mcp)
+register_pcg_landscape_tools(mcp)
+register_animation_tools(mcp)
+register_metasound_tools(mcp)
+register_art_direction_tools(mcp)
+register_optimization_tools(mcp)
+register_source_control_tools(mcp)
+register_cpp_tools(mcp)
+register_multiplayer_tools(mcp)
 
 
 @mcp.prompt()
@@ -364,6 +382,18 @@ def info():
     - `add_blueprint_get_self_component_reference(blueprint_name, component_name)` - Add component refs
     - `add_blueprint_self_reference(blueprint_name)` - Add self references
     - `find_blueprint_nodes(blueprint_name, node_type, event_type)` - Find nodes
+
+    ## Deep Blueprint Graph Authoring
+    - `add_blueprint_control_node`, `add_blueprint_cast_node`, `add_blueprint_math_node` - Add common control, cast, and math nodes
+    - `set_variable_default_value`, `set_variable_container_type`, `add_local_variable` - Manage defaults, containers, and function-local data
+    - `split_struct_pin`, `recombine_struct_pin`, `resolve_wildcard_pin`, `add_dynamic_pin_to_node` - Manipulate advanced pins
+    - `delete_blueprint_node`, `disconnect_blueprint_pin`, `move_blueprint_node`, `format_blueprint_nodes` - Refactor and organize graphs
+    - `add_custom_event_node`, `add_function_entry_node`, `set_function_flags`, `edit_construction_script` - Author events and functions
+    - `create_blueprint_interface`, `implement_interface`, `add_interface_message_node` - Interface-based communication
+    - `create_event_dispatcher`, `add_event_dispatcher_node`, `add_bind_event_node`, `add_create_event_node` - Delegate and dispatcher workflows
+    - `add_collection_node`, `add_format_text_node`, `add_switch_node`, `add_async_action_node` - Dynamic intelligent nodes
+    - `add_spawn_actor_node`, `add_break_struct_node`, `add_make_struct_node`, `add_class_reference_node`, `add_global_getter` - Gameplay data and world access
+    - `export_nodes_as_text`, `paste_nodes_from_text`, `read_graph_logic_flow`, `inspect_node_pins`, `get_specific_node_error` - Clipboard, semantic reading, and debug helpers
     
     ## Project Tools
     - `create_input_mapping(action_name, key, input_type)` - Create input mappings
@@ -435,6 +465,20 @@ def info():
     - `validate_assets(path)` - Load and report asset validation issues
     - `validate_blueprint_graph(blueprint_path)` - Detect orphan nodes and loose pins
     - `create_save_game_blueprint(name, path)` - Create SaveGame Blueprints
+
+    ## Unreal 5 Production Workflow Tools
+    - `create_pcg_graph(name, path)` / `configure_pcg_graph(graph_path, nodes, edges)` - Create PCG Graph assets and store graph node specs
+    - `create_pcg_volume(name, graph_path, location, extent)` - Spawn PCG Volumes when the PCG plugin is enabled
+    - `create_biome_from_prompt(prompt, asset_paths, density, bounds_min, bounds_max)` - Scatter biome meshes from project assets
+    - `create_landscape(...)`, `apply_landscape_material(material_path)`, `create_road_spline(points)` - Terrain setup helpers
+    - `create_anim_blueprint`, `create_blend_space`, `create_anim_montage_from_sequence`, `add_anim_notify` - Animation asset setup
+    - `create_ik_rig`, `create_ik_retargeter` - IK retargeting setup
+    - `create_metasound_source`, `configure_metasound_graph`, `import_dialogue_batch` - MetaSound and dialogue audio workflows
+    - `apply_lighting_preset` / `apply_art_direction_prompt` - Lighting, fog, sky, and post-process presets
+    - `audit_optimization`, `set_nanite_enabled`, `generate_hlods`, `capture_profile_snapshot` - Optimization and profiling automation
+    - `git_status`, `git_diff`, `git_commit_changes`, `p4_status`, `p4_submit`, `explain_uasset_conflict` - Source control helpers
+    - `create_unreal_cpp_class`, `trigger_live_coding_compile` - C++ class wizard and Live Coding
+    - `set_blueprint_variable_replication`, `create_blueprint_rpc_event` - Multiplayer replication helpers
     
     ## Best Practices
     

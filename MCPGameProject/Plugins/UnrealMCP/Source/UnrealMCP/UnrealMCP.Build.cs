@@ -9,6 +9,7 @@ public class UnrealMCP : ModuleRules
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 		// Use IWYUSupport instead of the deprecated bEnforceIWYU in UE5.5
 		IWYUSupport = IWYUSupport.Full;
+		bUseUnity = false;
 
 		PublicIncludePaths.AddRange(
 			new string[] {
