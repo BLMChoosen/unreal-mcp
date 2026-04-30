@@ -5,7 +5,7 @@ These tools extend Blueprint graph authoring beyond basic node placement and pin
 ## Control Flow and Core Nodes
 
 - `add_blueprint_control_node(blueprint_name, node_type, ...)` - Add Branch, Sequence, loops, Gate, DoOnce, and Switch nodes.
-- `add_blueprint_cast_node(blueprint_name, cast_to_class, ...)` - Add Cast To nodes.
+- `add_blueprint_cast_node(blueprint_name, cast_to_class, ...)` - Add Cast To nodes. Optional auto-wiring params: `next_node_id_on_success` / `next_node_id_on_fail` (and `next_pin_name_on_success` / `next_pin_name_on_fail`) to connect the `then` and `CastFailed` exec pins, and `prev_node_id` / `prev_pin_name` (default `then`) to connect an upstream node's exec output into the cast's `execute` input. Response includes `as_class_pin` (the output object pin name like `AsPlayerController`) and connection flags.
 - `add_blueprint_math_node(blueprint_name, operation, ...)` - Add common Kismet math calls with aliases such as Add, Multiply, Clamp, and vector variants.
 - `add_spawn_actor_node(blueprint_name, actor_class, ...)` - Add SpawnActorFromClass with Spawn Transform support.
 - `add_math_expression_node(blueprint_name, expression, ...)` - Add a Math Expression node from an expression string.

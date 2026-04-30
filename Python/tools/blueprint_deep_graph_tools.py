@@ -58,8 +58,42 @@ def register_blueprint_deep_graph_tools(mcp: FastMCP):
         node_position: Optional[List[float]] = None,
         graph_name: str = "",
         graph_type: str = "",
+        next_node_id_on_success: Optional[str] = None,
+        next_node_id_on_fail: Optional[str] = None,
+        next_pin_name_on_success: Optional[str] = None,
+        next_pin_name_on_fail: Optional[str] = None,
+        prev_node_id: Optional[str] = None,
+        prev_pin_name: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Add a Cast To node."""
+        """Add a Cast To node with optional auto-wiring of its exec pins.
+
+        Pin names on the resulting UK2Node_DynamicCast:
+        - exec in: 'execute'
+        - success then: 'then'
+        - failure then: 'CastFailed'
+        - output object: 'As<ClassName>' (returned in response as 'as_class_pin')
+
+        Args:
+            blueprint_name: Target Blueprint asset name.
+            cast_to_class: Class to cast to (e.g. 'PlayerController', 'BP_Enemy_C').
+            node_position: Optional [X, Y] graph position.
+            graph_name / graph_type: Optional graph routing (defaults to event graph).
+            next_node_id_on_success: GUID of a node to auto-wire to from the
+                'then' (cast succeeded) exec pin.
+            next_node_id_on_fail: GUID of a node to auto-wire to from the
+                'CastFailed' exec pin.
+            next_pin_name_on_success / next_pin_name_on_fail: Override the
+                target node's input exec pin name (default: 'execute').
+            prev_node_id: GUID of an upstream node whose exec output should
+                connect into the cast node's 'execute' input.
+            prev_pin_name: Output exec pin name on the upstream node
+                (default: 'then').
+
+        Returns:
+            Response containing node_id, as_class_pin, success_exec_pin,
+            fail_exec_pin, and connection flags (connected_on_success /
+            connected_on_fail / connected_prev).
+        """
         return _send("add_blueprint_cast_node", locals())
 
     @mcp.tool()

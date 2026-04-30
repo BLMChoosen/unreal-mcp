@@ -47,6 +47,8 @@
 #include "K2Node_MacroInstance.h"
 #include "Engine/TimelineTemplate.h"
 #include "Curves/CurveFloat.h"
+#include "Curves/CurveVector.h"
+#include "Curves/CurveLinearColor.h"
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "KismetCompiler.h"
@@ -148,6 +150,26 @@ TSharedPtr<FJsonObject> FUnrealMCPBlueprintNodeCommands::HandleCommand(const FSt
     else if (CommandType == TEXT("add_timeline_keyframe"))
     {
         return HandleAddTimelineKeyframe(Params);
+    }
+    else if (CommandType == TEXT("add_timeline_vector_track"))
+    {
+        return HandleAddTimelineVectorTrack(Params);
+    }
+    else if (CommandType == TEXT("add_timeline_vector_keyframe"))
+    {
+        return HandleAddTimelineVectorKeyframe(Params);
+    }
+    else if (CommandType == TEXT("add_timeline_linear_color_track"))
+    {
+        return HandleAddTimelineLinearColorTrack(Params);
+    }
+    else if (CommandType == TEXT("add_timeline_linear_color_keyframe"))
+    {
+        return HandleAddTimelineLinearColorKeyframe(Params);
+    }
+    else if (CommandType == TEXT("add_timeline_event_track"))
+    {
+        return HandleAddTimelineEventTrack(Params);
     }
     else if (CommandType == TEXT("create_blueprint_function"))
     {
@@ -1618,11 +1640,88 @@ TSharedPtr<FJsonObject> FUnrealMCPBlueprintNodeCommands::HandleAddCastNode(const
     CastNode->PostPlacedNewNode();
     CastNode->AllocateDefaultPins();
 
+    // Optional auto-wiring of exec pins to neighbouring nodes by GUID.
+    // Pin names on UK2Node_DynamicCast: exec in = "execute", success then = "then",
+    // failure then = "CastFailed". The output object pin is named "AsXxxx" where
+    // Xxxx is the target class name (no prefix).
+    auto FindNodeByGuid = [EventGraph](const FString& GuidStr) -> UEdGraphNode*
+    {
+        if (GuidStr.IsEmpty())
+        {
+            return nullptr;
+        }
+        for (UEdGraphNode* Node : EventGraph->Nodes)
+        {
+            if (Node && Node->NodeGuid.ToString() == GuidStr)
+            {
+                return Node;
+            }
+        }
+        return nullptr;
+    };
+
+    bool bConnectedSuccess = false;
+    bool bConnectedFail = false;
+    bool bConnectedPrev = false;
+
+    FString NextSuccessGuid;
+    Params->TryGetStringField(TEXT("next_node_id_on_success"), NextSuccessGuid);
+    if (!NextSuccessGuid.IsEmpty())
+    {
+        if (UEdGraphNode* SuccessTarget = FindNodeByGuid(NextSuccessGuid))
+        {
+            FString TargetPin = TEXT("execute");
+            Params->TryGetStringField(TEXT("next_pin_name_on_success"), TargetPin);
+            bConnectedSuccess = FUnrealMCPCommonUtils::ConnectGraphNodes(EventGraph, CastNode, TEXT("then"), SuccessTarget, TargetPin);
+        }
+    }
+
+    FString NextFailGuid;
+    Params->TryGetStringField(TEXT("next_node_id_on_fail"), NextFailGuid);
+    if (!NextFailGuid.IsEmpty())
+    {
+        if (UEdGraphNode* FailTarget = FindNodeByGuid(NextFailGuid))
+        {
+            FString TargetPin = TEXT("execute");
+            Params->TryGetStringField(TEXT("next_pin_name_on_fail"), TargetPin);
+            bConnectedFail = FUnrealMCPCommonUtils::ConnectGraphNodes(EventGraph, CastNode, TEXT("CastFailed"), FailTarget, TargetPin);
+        }
+    }
+
+    FString PrevGuid;
+    Params->TryGetStringField(TEXT("prev_node_id"), PrevGuid);
+    if (!PrevGuid.IsEmpty())
+    {
+        if (UEdGraphNode* PrevNode = FindNodeByGuid(PrevGuid))
+        {
+            FString PrevPin = TEXT("then");
+            Params->TryGetStringField(TEXT("prev_pin_name"), PrevPin);
+            bConnectedPrev = FUnrealMCPCommonUtils::ConnectGraphNodes(EventGraph, PrevNode, PrevPin, CastNode, TEXT("execute"));
+        }
+    }
+
+    // Compute the name of the output object pin ("AsClassName" — strips A/U prefix).
+    FString AsClassPinName;
+    {
+        FString CleanClassName = TargetClass->GetName();
+        if (CleanClassName.Len() > 1 && (CleanClassName[0] == TEXT('A') || CleanClassName[0] == TEXT('U')) && FChar::IsUpper(CleanClassName[1]))
+        {
+            CleanClassName = CleanClassName.Mid(1);
+        }
+        AsClassPinName = FString::Printf(TEXT("As%s"), *CleanClassName);
+    }
+
     FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
 
     TSharedPtr<FJsonObject> Result = MakeShared<FJsonObject>();
     Result->SetStringField(TEXT("node_id"), CastNode->NodeGuid.ToString());
     Result->SetStringField(TEXT("cast_to_class"), CastToClass);
+    Result->SetStringField(TEXT("as_class_pin"), AsClassPinName);
+    Result->SetStringField(TEXT("success_exec_pin"), TEXT("then"));
+    Result->SetStringField(TEXT("fail_exec_pin"), TEXT("CastFailed"));
+    Result->SetBoolField(TEXT("connected_on_success"), bConnectedSuccess);
+    Result->SetBoolField(TEXT("connected_on_fail"), bConnectedFail);
+    Result->SetBoolField(TEXT("connected_prev"), bConnectedPrev);
     return Result;
 }
 
@@ -1998,6 +2097,273 @@ TSharedPtr<FJsonObject> FUnrealMCPBlueprintNodeCommands::HandleAddTimelineKeyfra
 
     TSharedPtr<FJsonObject> Result = MakeShared<FJsonObject>();
     Result->SetBoolField(TEXT("success"), true);
+    return Result;
+}
+
+// ---------------------------------------------------------------------------
+// Timeline Vector / LinearColor / Event tracks (Fase 0 bug fix)
+// ---------------------------------------------------------------------------
+
+namespace
+{
+    UTimelineTemplate* FindTimelineTemplateOrError(
+        const TSharedPtr<FJsonObject>& Params,
+        UBlueprint*& OutBlueprint,
+        FString& OutTimelineName,
+        FString& OutTrackName,
+        TSharedPtr<FJsonObject>& OutError)
+    {
+        FString BlueprintName;
+        if (!Params->TryGetStringField(TEXT("blueprint_name"), BlueprintName))
+        {
+            OutError = FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Missing 'blueprint_name' parameter"));
+            return nullptr;
+        }
+        if (!Params->TryGetStringField(TEXT("timeline_name"), OutTimelineName))
+        {
+            OutError = FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Missing 'timeline_name' parameter"));
+            return nullptr;
+        }
+        if (!Params->TryGetStringField(TEXT("track_name"), OutTrackName))
+        {
+            OutError = FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Missing 'track_name' parameter"));
+            return nullptr;
+        }
+
+        OutBlueprint = FUnrealMCPCommonUtils::FindBlueprint(BlueprintName);
+        if (!OutBlueprint)
+        {
+            OutError = FUnrealMCPCommonUtils::CreateErrorResponse(FString::Printf(TEXT("Blueprint not found: %s"), *BlueprintName));
+            return nullptr;
+        }
+
+        UTimelineTemplate* Template = OutBlueprint->FindTimelineTemplateByVariableName(FName(*OutTimelineName));
+        if (!Template)
+        {
+            OutError = FUnrealMCPCommonUtils::CreateErrorResponse(FString::Printf(TEXT("Timeline '%s' not found in blueprint"), *OutTimelineName));
+            return nullptr;
+        }
+        return Template;
+    }
+
+    void ReconstructTimelineNode(UBlueprint* Blueprint, const FString& TimelineName)
+    {
+        UEdGraph* EventGraph = FUnrealMCPCommonUtils::FindOrCreateEventGraph(Blueprint);
+        if (!EventGraph)
+        {
+            return;
+        }
+        for (UEdGraphNode* Node : EventGraph->Nodes)
+        {
+            if (UK2Node_Timeline* TLNode = Cast<UK2Node_Timeline>(Node))
+            {
+                if (TLNode->TimelineName == FName(*TimelineName))
+                {
+                    TLNode->ReconstructNode();
+                    break;
+                }
+            }
+        }
+    }
+}
+
+TSharedPtr<FJsonObject> FUnrealMCPBlueprintNodeCommands::HandleAddTimelineVectorTrack(const TSharedPtr<FJsonObject>& Params)
+{
+    UBlueprint* Blueprint = nullptr;
+    FString TimelineName, TrackName;
+    TSharedPtr<FJsonObject> Error;
+    UTimelineTemplate* Template = FindTimelineTemplateOrError(Params, Blueprint, TimelineName, TrackName, Error);
+    if (!Template)
+    {
+        return Error;
+    }
+
+    UCurveVector* NewCurve = NewObject<UCurveVector>(Blueprint, UCurveVector::StaticClass(), NAME_None, RF_NoFlags);
+
+    FTTVectorTrack NewTrack;
+    NewTrack.SetTrackName(FName(*TrackName), Template);
+    NewTrack.CurveVector = NewCurve;
+    Template->VectorTracks.Add(NewTrack);
+
+    ReconstructTimelineNode(Blueprint, TimelineName);
+    FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
+
+    TSharedPtr<FJsonObject> Result = MakeShared<FJsonObject>();
+    Result->SetBoolField(TEXT("success"), true);
+    Result->SetStringField(TEXT("track_name"), TrackName);
+    Result->SetStringField(TEXT("track_type"), TEXT("Vector"));
+    return Result;
+}
+
+TSharedPtr<FJsonObject> FUnrealMCPBlueprintNodeCommands::HandleAddTimelineVectorKeyframe(const TSharedPtr<FJsonObject>& Params)
+{
+    UBlueprint* Blueprint = nullptr;
+    FString TimelineName, TrackName;
+    TSharedPtr<FJsonObject> Error;
+    UTimelineTemplate* Template = FindTimelineTemplateOrError(Params, Blueprint, TimelineName, TrackName, Error);
+    if (!Template)
+    {
+        return Error;
+    }
+
+    double Time = 0.0;
+    if (!Params->TryGetNumberField(TEXT("time"), Time))
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Missing 'time' parameter"));
+    }
+
+    if (!Params->HasField(TEXT("value")))
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Missing 'value' parameter (expected [x, y, z])"));
+    }
+    const FVector Value = FUnrealMCPCommonUtils::GetVectorFromJson(Params, TEXT("value"));
+
+    bool bFound = false;
+    for (FTTVectorTrack& Track : Template->VectorTracks)
+    {
+        if (Track.GetTrackName() == FName(*TrackName) && Track.CurveVector)
+        {
+            Track.CurveVector->FloatCurves[0].UpdateOrAddKey(Time, Value.X);
+            Track.CurveVector->FloatCurves[1].UpdateOrAddKey(Time, Value.Y);
+            Track.CurveVector->FloatCurves[2].UpdateOrAddKey(Time, Value.Z);
+            bFound = true;
+            break;
+        }
+    }
+    if (!bFound)
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(FString::Printf(TEXT("Vector track '%s' not found in timeline"), *TrackName));
+    }
+
+    FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
+
+    TSharedPtr<FJsonObject> Result = MakeShared<FJsonObject>();
+    Result->SetBoolField(TEXT("success"), true);
+    return Result;
+}
+
+TSharedPtr<FJsonObject> FUnrealMCPBlueprintNodeCommands::HandleAddTimelineLinearColorTrack(const TSharedPtr<FJsonObject>& Params)
+{
+    UBlueprint* Blueprint = nullptr;
+    FString TimelineName, TrackName;
+    TSharedPtr<FJsonObject> Error;
+    UTimelineTemplate* Template = FindTimelineTemplateOrError(Params, Blueprint, TimelineName, TrackName, Error);
+    if (!Template)
+    {
+        return Error;
+    }
+
+    UCurveLinearColor* NewCurve = NewObject<UCurveLinearColor>(Blueprint, UCurveLinearColor::StaticClass(), NAME_None, RF_NoFlags);
+
+    FTTLinearColorTrack NewTrack;
+    NewTrack.SetTrackName(FName(*TrackName), Template);
+    NewTrack.CurveLinearColor = NewCurve;
+    Template->LinearColorTracks.Add(NewTrack);
+
+    ReconstructTimelineNode(Blueprint, TimelineName);
+    FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
+
+    TSharedPtr<FJsonObject> Result = MakeShared<FJsonObject>();
+    Result->SetBoolField(TEXT("success"), true);
+    Result->SetStringField(TEXT("track_name"), TrackName);
+    Result->SetStringField(TEXT("track_type"), TEXT("LinearColor"));
+    return Result;
+}
+
+TSharedPtr<FJsonObject> FUnrealMCPBlueprintNodeCommands::HandleAddTimelineLinearColorKeyframe(const TSharedPtr<FJsonObject>& Params)
+{
+    UBlueprint* Blueprint = nullptr;
+    FString TimelineName, TrackName;
+    TSharedPtr<FJsonObject> Error;
+    UTimelineTemplate* Template = FindTimelineTemplateOrError(Params, Blueprint, TimelineName, TrackName, Error);
+    if (!Template)
+    {
+        return Error;
+    }
+
+    double Time = 0.0;
+    if (!Params->TryGetNumberField(TEXT("time"), Time))
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Missing 'time' parameter"));
+    }
+
+    if (!Params->HasField(TEXT("value")))
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Missing 'value' parameter (expected [r, g, b, a])"));
+    }
+    const TArray<TSharedPtr<FJsonValue>>* RawArray = nullptr;
+    if (!Params->TryGetArrayField(TEXT("value"), RawArray) || RawArray->Num() < 3)
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("'value' must be an array of [r, g, b] or [r, g, b, a]"));
+    }
+    const float R = static_cast<float>((*RawArray)[0]->AsNumber());
+    const float G = static_cast<float>((*RawArray)[1]->AsNumber());
+    const float B = static_cast<float>((*RawArray)[2]->AsNumber());
+    const float A = RawArray->Num() >= 4 ? static_cast<float>((*RawArray)[3]->AsNumber()) : 1.0f;
+
+    bool bFound = false;
+    for (FTTLinearColorTrack& Track : Template->LinearColorTracks)
+    {
+        if (Track.GetTrackName() == FName(*TrackName) && Track.CurveLinearColor)
+        {
+            Track.CurveLinearColor->FloatCurves[0].UpdateOrAddKey(Time, R);
+            Track.CurveLinearColor->FloatCurves[1].UpdateOrAddKey(Time, G);
+            Track.CurveLinearColor->FloatCurves[2].UpdateOrAddKey(Time, B);
+            Track.CurveLinearColor->FloatCurves[3].UpdateOrAddKey(Time, A);
+            bFound = true;
+            break;
+        }
+    }
+    if (!bFound)
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(FString::Printf(TEXT("Linear color track '%s' not found in timeline"), *TrackName));
+    }
+
+    FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
+
+    TSharedPtr<FJsonObject> Result = MakeShared<FJsonObject>();
+    Result->SetBoolField(TEXT("success"), true);
+    return Result;
+}
+
+TSharedPtr<FJsonObject> FUnrealMCPBlueprintNodeCommands::HandleAddTimelineEventTrack(const TSharedPtr<FJsonObject>& Params)
+{
+    UBlueprint* Blueprint = nullptr;
+    FString TimelineName, TrackName;
+    TSharedPtr<FJsonObject> Error;
+    UTimelineTemplate* Template = FindTimelineTemplateOrError(Params, Blueprint, TimelineName, TrackName, Error);
+    if (!Template)
+    {
+        return Error;
+    }
+
+    // Event tracks store keys directly on a UCurveFloat, but the curve isn't sampled — only the keys' Time values trigger the exec pin.
+    UCurveFloat* NewCurve = NewObject<UCurveFloat>(Blueprint, UCurveFloat::StaticClass(), NAME_None, RF_NoFlags);
+
+    FTTEventTrack NewTrack;
+    NewTrack.SetTrackName(FName(*TrackName), Template);
+    NewTrack.CurveKeys = NewCurve;
+
+    // Optional: pre-populate event times.
+    const TArray<TSharedPtr<FJsonValue>>* TimesArray = nullptr;
+    if (Params->TryGetArrayField(TEXT("event_times"), TimesArray))
+    {
+        for (const TSharedPtr<FJsonValue>& Item : *TimesArray)
+        {
+            const double T = Item->AsNumber();
+            NewCurve->FloatCurve.UpdateOrAddKey(T, 0.0f);
+        }
+    }
+
+    Template->EventTracks.Add(NewTrack);
+
+    ReconstructTimelineNode(Blueprint, TimelineName);
+    FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
+
+    TSharedPtr<FJsonObject> Result = MakeShared<FJsonObject>();
+    Result->SetBoolField(TEXT("success"), true);
+    Result->SetStringField(TEXT("track_name"), TrackName);
+    Result->SetStringField(TEXT("track_type"), TEXT("Event"));
     return Result;
 }
 

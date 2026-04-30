@@ -298,6 +298,11 @@ FString UUnrealMCPBridge::ExecuteCommand(const FString& CommandType, const TShar
                      CommandType == TEXT("add_timeline_node") ||
                      CommandType == TEXT("add_timeline_float_track") ||
                      CommandType == TEXT("add_timeline_keyframe") ||
+                     CommandType == TEXT("add_timeline_vector_track") ||
+                     CommandType == TEXT("add_timeline_vector_keyframe") ||
+                     CommandType == TEXT("add_timeline_linear_color_track") ||
+                     CommandType == TEXT("add_timeline_linear_color_keyframe") ||
+                     CommandType == TEXT("add_timeline_event_track") ||
                      CommandType == TEXT("create_blueprint_function") ||
                      CommandType == TEXT("create_blueprint_macro") ||
                      CommandType == TEXT("create_blueprint_custom_event_graph") ||

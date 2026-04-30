@@ -701,8 +701,11 @@ def register_blueprint_node_tools(mcp: FastMCP):
         """
         Add a Timeline node to a Blueprint event graph.
 
-        The Timeline template is created inside the Blueprint. Use the Unreal
-        editor to add tracks (float, vector, event) to the timeline after creation.
+        After creating the timeline, populate it with tracks via:
+        - add_timeline_float_track / add_timeline_keyframe
+        - add_timeline_vector_track / add_timeline_vector_keyframe
+        - add_timeline_linear_color_track / add_timeline_linear_color_keyframe
+        - add_timeline_event_track
 
         Args:
             blueprint_name: Name of the target Blueprint
@@ -799,6 +802,203 @@ def register_blueprint_node_tools(mcp: FastMCP):
             return response or {"success": False, "message": "No response"}
         except Exception as e:
             logger.error(f"Error adding timeline keyframe: {e}")
+            return {"success": False, "message": str(e)}
+
+    @mcp.tool()
+    def add_timeline_vector_track(
+        ctx: Context,
+        blueprint_name: str,
+        timeline_name: str,
+        track_name: str
+    ) -> Dict[str, Any]:
+        """
+        Add a vector (FVector) track to an existing Timeline node in a Blueprint.
+
+        The track is backed by a UCurveVector (3 sub-curves: X, Y, Z). Once
+        created, populate keyframes with add_timeline_vector_keyframe.
+
+        Args:
+            blueprint_name: Name of the target Blueprint (e.g. 'BP_MyActor')
+            timeline_name: Name of the timeline within the Blueprint
+            track_name: Name of the vector track to create (e.g. 'Velocity')
+
+        Returns:
+            Response containing success status, track_name, track_type
+        """
+        from unreal_mcp_server import get_unreal_connection
+        try:
+            unreal = get_unreal_connection()
+            if not unreal:
+                return {"success": False, "message": "Failed to connect to Unreal Engine"}
+            response = unreal.send_command("add_timeline_vector_track", {
+                "blueprint_name": blueprint_name,
+                "timeline_name": timeline_name,
+                "track_name": track_name
+            })
+            return response or {"success": False, "message": "No response"}
+        except Exception as e:
+            logger.error(f"Error adding timeline vector track: {e}")
+            return {"success": False, "message": str(e)}
+
+    @mcp.tool()
+    def add_timeline_vector_keyframe(
+        ctx: Context,
+        blueprint_name: str,
+        timeline_name: str,
+        track_name: str,
+        time: float,
+        value: List[float]
+    ) -> Dict[str, Any]:
+        """
+        Add a keyframe to a timeline vector track.
+
+        Updates X, Y and Z sub-curves of the underlying UCurveVector at the
+        given time.
+
+        Args:
+            blueprint_name: Name of the target Blueprint
+            timeline_name: Name of the timeline
+            track_name: Name of the vector track (e.g. 'Velocity')
+            time: Time of the keyframe in seconds (e.g. 0.0)
+            value: [X, Y, Z] vector value at that time (e.g. [100.0, 0.0, 0.0])
+
+        Returns:
+            Response containing success status
+        """
+        from unreal_mcp_server import get_unreal_connection
+        try:
+            unreal = get_unreal_connection()
+            if not unreal:
+                return {"success": False, "message": "Failed to connect to Unreal Engine"}
+            response = unreal.send_command("add_timeline_vector_keyframe", {
+                "blueprint_name": blueprint_name,
+                "timeline_name": timeline_name,
+                "track_name": track_name,
+                "time": time,
+                "value": value
+            })
+            return response or {"success": False, "message": "No response"}
+        except Exception as e:
+            logger.error(f"Error adding timeline vector keyframe: {e}")
+            return {"success": False, "message": str(e)}
+
+    @mcp.tool()
+    def add_timeline_linear_color_track(
+        ctx: Context,
+        blueprint_name: str,
+        timeline_name: str,
+        track_name: str
+    ) -> Dict[str, Any]:
+        """
+        Add a linear color (FLinearColor) track to an existing Timeline node.
+
+        The track is backed by a UCurveLinearColor (4 sub-curves: R, G, B, A).
+        Use add_timeline_linear_color_keyframe to populate keys.
+
+        Args:
+            blueprint_name: Name of the target Blueprint
+            timeline_name: Name of the timeline within the Blueprint
+            track_name: Name of the linear color track to create (e.g. 'Tint')
+
+        Returns:
+            Response containing success status, track_name, track_type
+        """
+        from unreal_mcp_server import get_unreal_connection
+        try:
+            unreal = get_unreal_connection()
+            if not unreal:
+                return {"success": False, "message": "Failed to connect to Unreal Engine"}
+            response = unreal.send_command("add_timeline_linear_color_track", {
+                "blueprint_name": blueprint_name,
+                "timeline_name": timeline_name,
+                "track_name": track_name
+            })
+            return response or {"success": False, "message": "No response"}
+        except Exception as e:
+            logger.error(f"Error adding timeline linear color track: {e}")
+            return {"success": False, "message": str(e)}
+
+    @mcp.tool()
+    def add_timeline_linear_color_keyframe(
+        ctx: Context,
+        blueprint_name: str,
+        timeline_name: str,
+        track_name: str,
+        time: float,
+        value: List[float]
+    ) -> Dict[str, Any]:
+        """
+        Add a keyframe to a timeline linear color track.
+
+        Args:
+            blueprint_name: Name of the target Blueprint
+            timeline_name: Name of the timeline
+            track_name: Name of the linear color track
+            time: Time of the keyframe in seconds
+            value: [R, G, B] or [R, G, B, A] color components in 0..1 range. If
+                alpha is omitted it defaults to 1.0.
+
+        Returns:
+            Response containing success status
+        """
+        from unreal_mcp_server import get_unreal_connection
+        try:
+            unreal = get_unreal_connection()
+            if not unreal:
+                return {"success": False, "message": "Failed to connect to Unreal Engine"}
+            response = unreal.send_command("add_timeline_linear_color_keyframe", {
+                "blueprint_name": blueprint_name,
+                "timeline_name": timeline_name,
+                "track_name": track_name,
+                "time": time,
+                "value": value
+            })
+            return response or {"success": False, "message": "No response"}
+        except Exception as e:
+            logger.error(f"Error adding timeline linear color keyframe: {e}")
+            return {"success": False, "message": str(e)}
+
+    @mcp.tool()
+    def add_timeline_event_track(
+        ctx: Context,
+        blueprint_name: str,
+        timeline_name: str,
+        track_name: str,
+        event_times: List[float] = None
+    ) -> Dict[str, Any]:
+        """
+        Add an event track to an existing Timeline node.
+
+        Event tracks expose an exec out pin on the timeline node which fires
+        each time the timeline crosses one of the configured times.
+
+        Args:
+            blueprint_name: Name of the target Blueprint
+            timeline_name: Name of the timeline
+            track_name: Name of the event track (becomes the exec out pin name)
+            event_times: Optional list of times (seconds) to pre-populate as
+                event keys (e.g. [0.5, 1.0, 1.5]). Can also be added later via
+                the editor.
+
+        Returns:
+            Response containing success status, track_name, track_type
+        """
+        from unreal_mcp_server import get_unreal_connection
+        try:
+            unreal = get_unreal_connection()
+            if not unreal:
+                return {"success": False, "message": "Failed to connect to Unreal Engine"}
+            payload = {
+                "blueprint_name": blueprint_name,
+                "timeline_name": timeline_name,
+                "track_name": track_name
+            }
+            if event_times:
+                payload["event_times"] = event_times
+            response = unreal.send_command("add_timeline_event_track", payload)
+            return response or {"success": False, "message": "No response"}
+        except Exception as e:
+            logger.error(f"Error adding timeline event track: {e}")
             return {"success": False, "message": str(e)}
 
     # ===== Phase 2: Extended Blueprint Graph Authoring =====

@@ -40,6 +40,11 @@ private:
     TSharedPtr<FJsonObject> HandleAddTimelineNode(const TSharedPtr<FJsonObject>& Params);
     TSharedPtr<FJsonObject> HandleAddTimelineFloatTrack(const TSharedPtr<FJsonObject>& Params);
     TSharedPtr<FJsonObject> HandleAddTimelineKeyframe(const TSharedPtr<FJsonObject>& Params);
+    TSharedPtr<FJsonObject> HandleAddTimelineVectorTrack(const TSharedPtr<FJsonObject>& Params);
+    TSharedPtr<FJsonObject> HandleAddTimelineVectorKeyframe(const TSharedPtr<FJsonObject>& Params);
+    TSharedPtr<FJsonObject> HandleAddTimelineLinearColorTrack(const TSharedPtr<FJsonObject>& Params);
+    TSharedPtr<FJsonObject> HandleAddTimelineLinearColorKeyframe(const TSharedPtr<FJsonObject>& Params);
+    TSharedPtr<FJsonObject> HandleAddTimelineEventTrack(const TSharedPtr<FJsonObject>& Params);
 
     // Phase 2: Extended Blueprint Graph Authoring
     TSharedPtr<FJsonObject> HandleCreateBlueprintFunction(const TSharedPtr<FJsonObject>& Params);

@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs grep *)",
+      "Bash(python -c \"import ast; ast.parse\\(open\\('c:/Users/Choosen/unreal-mcp/Python/tools/node_tools.py'\\).read\\(\\)\\); print\\('node_tools.py OK'\\)\")",
+      "Bash(python -c \"import ast; ast.parse\\(open\\('c:/Users/Choosen/unreal-mcp/Python/tools/blueprint_deep_graph_tools.py'\\).read\\(\\)\\); print\\('blueprint_deep_graph_tools.py OK'\\)\")"
+    ]
+  }
+}

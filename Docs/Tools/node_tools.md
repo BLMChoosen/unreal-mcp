@@ -236,6 +236,46 @@ Find nodes in a Blueprint's event graph.
 }
 ```
 
+## Timeline Tools
+
+Timeline nodes wrap a `UTimelineTemplate` inside the Blueprint and expose tracks of various types. Each track produces an output pin on the timeline node.
+
+### add_timeline_node
+
+Create the timeline node itself. Must be called before any of the track helpers below.
+
+**Parameters:** `blueprint_name`, `timeline_name`, `node_position` (optional).
+
+### add_timeline_float_track / add_timeline_keyframe
+
+Add a float-valued track and append keyframes (`time`, `value: float`).
+
+### add_timeline_vector_track
+
+Add a `FVector` track backed by a `UCurveVector` (3 sub-curves: X/Y/Z).
+
+**Parameters:** `blueprint_name`, `timeline_name`, `track_name`.
+
+### add_timeline_vector_keyframe
+
+Append a vector keyframe at `time` with `value: [x, y, z]`. Updates all three component sub-curves at once.
+
+### add_timeline_linear_color_track
+
+Add an `FLinearColor` track backed by a `UCurveLinearColor` (4 sub-curves: R/G/B/A).
+
+**Parameters:** `blueprint_name`, `timeline_name`, `track_name`.
+
+### add_timeline_linear_color_keyframe
+
+Append a color keyframe at `time` with `value: [r, g, b]` or `[r, g, b, a]` (components in 0..1; alpha defaults to 1.0).
+
+### add_timeline_event_track
+
+Add an event track that exposes an exec out pin firing whenever the timeline crosses one of its configured times.
+
+**Parameters:** `blueprint_name`, `timeline_name`, `track_name`, `event_times` (optional `List[float]` to pre-populate keys).
+
 ## Error Handling
 
 All command responses include a "success" field indicating whether the operation succeeded, and an optional "message" field with details in case of failure.
