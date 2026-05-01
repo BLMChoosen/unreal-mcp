@@ -4,7 +4,9 @@
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "EdGraph/EdGraphPin.h"
 #include "EdGraphSchema_K2.h"
+#include "Engine/DataTable.h"
 #include "Engine/UserDefinedStruct.h"
+#include "Factories/DataTableFactory.h"
 #include "Factories/StructureFactory.h"
 #include "Kismet2/StructureEditorUtils.h"
 #include "Modules/ModuleManager.h"
@@ -344,7 +346,56 @@ TSharedPtr<FJsonObject> FUnrealMCPSchemaCommands::HandleRecompileStruct(const TS
 
 TSharedPtr<FJsonObject> FUnrealMCPSchemaCommands::HandleCreateDataTableFromStruct(const TSharedPtr<FJsonObject>& Params)
 {
-    return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Not implemented"));
+    FString Name;
+    if (!Params->TryGetStringField(TEXT("name"), Name))
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Missing 'name' parameter"));
+    }
+
+    FString StructPath;
+    if (!Params->TryGetStringField(TEXT("struct_path"), StructPath))
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Missing 'struct_path' parameter"));
+    }
+
+    FString PackagePath = TEXT("/Game/Data");
+    Params->TryGetStringField(TEXT("path"), PackagePath);
+
+    UUserDefinedStruct* Struct = LoadUserStructByPath(StructPath);
+    if (!Struct)
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(
+            FString::Printf(TEXT("UserDefinedStruct not found: %s"), *StructPath));
+    }
+
+    FStructureEditorUtils::CompileStructure(Struct);
+
+    UDataTableFactory* Factory = NewObject<UDataTableFactory>();
+    Factory->Struct = Struct;
+
+    FAssetToolsModule& AssetToolsModule =
+        FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
+    UObject* NewAsset = AssetToolsModule.Get().CreateAsset(
+        Name, PackagePath, UDataTable::StaticClass(), Factory);
+
+    UDataTable* DataTable = Cast<UDataTable>(NewAsset);
+    if (!DataTable)
+    {
+        return FUnrealMCPCommonUtils::CreateErrorResponse(
+            FString::Printf(TEXT("Failed to create Data Table '%s' at '%s'"), *Name, *PackagePath));
+    }
+
+    DataTable->RowStruct = Struct;
+    FAssetRegistryModule::AssetCreated(DataTable);
+    DataTable->MarkPackageDirty();
+    DataTable->PostEditChange();
+
+    TSharedPtr<FJsonObject> Result = MakeShared<FJsonObject>();
+    Result->SetBoolField(TEXT("success"), true);
+    Result->SetStringField(TEXT("name"), Name);
+    Result->SetStringField(TEXT("path"), DataTable->GetPathName());
+    Result->SetStringField(TEXT("row_struct"), Struct->GetPathName());
+    return Result;
 }
 
 TSharedPtr<FJsonObject> FUnrealMCPSchemaCommands::HandleGenerateSchema(const TSharedPtr<FJsonObject>& Params)

@@ -1245,10 +1245,7 @@ TSharedPtr<FJsonObject> FUnrealMCPBlueprintNodeCommands::HandleFindBlueprintNode
     }
 
     FString NodeType;
-    if (!Params->TryGetStringField(TEXT("node_type"), NodeType))
-    {
-        return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Missing 'node_type' parameter"));
-    }
+    Params->TryGetStringField(TEXT("node_type"), NodeType);
 
     // Find the blueprint
     UBlueprint* Blueprint = FUnrealMCPCommonUtils::FindBlueprint(BlueprintName);
@@ -1264,33 +1261,82 @@ TSharedPtr<FJsonObject> FUnrealMCPBlueprintNodeCommands::HandleFindBlueprintNode
         return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Failed to get event graph"));
     }
 
-    // Create a JSON array for the node GUIDs
+    // Create JSON arrays for both the legacy GUID-only shape and richer node details.
     TArray<TSharedPtr<FJsonValue>> NodeGuidArray;
-    
-    // Filter nodes by the exact requested type
-    if (NodeType == TEXT("Event"))
+    TArray<TSharedPtr<FJsonValue>> NodeArray;
+
+    FString EventName;
+    Params->TryGetStringField(TEXT("event_name"), EventName);
+
+    for (UEdGraphNode* Node : EventGraph->Nodes)
     {
-        FString EventName;
-        if (!Params->TryGetStringField(TEXT("event_name"), EventName))
+        if (!Node)
         {
-            return FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Missing 'event_name' parameter for Event node search"));
+            continue;
         }
-        
-        // Look for nodes with exact event name (e.g., ReceiveBeginPlay)
-        for (UEdGraphNode* Node : EventGraph->Nodes)
+
+        FString ResolvedType = TEXT("Node");
+        FString ResolvedName = Node->GetNodeTitle(ENodeTitleType::ListView).ToString();
+        FString MemberName;
+
+        if (UK2Node_Event* EventNode = Cast<UK2Node_Event>(Node))
         {
-            UK2Node_Event* EventNode = Cast<UK2Node_Event>(Node);
-            if (EventNode && EventNode->EventReference.GetMemberName() == FName(*EventName))
+            ResolvedType = TEXT("Event");
+            MemberName = EventNode->EventReference.GetMemberName().ToString();
+            if (MemberName.IsEmpty())
             {
-                UE_LOG(LogTemp, Display, TEXT("Found event node with name %s: %s"), *EventName, *EventNode->NodeGuid.ToString());
-                NodeGuidArray.Add(MakeShared<FJsonValueString>(EventNode->NodeGuid.ToString()));
+                MemberName = EventNode->CustomFunctionName.ToString();
+            }
+            ResolvedName = MemberName.IsEmpty() ? ResolvedName : MemberName;
+        }
+        else if (UK2Node_CallFunction* FunctionNode = Cast<UK2Node_CallFunction>(Node))
+        {
+            ResolvedType = TEXT("Function");
+            MemberName = FunctionNode->FunctionReference.GetMemberName().ToString();
+            ResolvedName = MemberName.IsEmpty() ? ResolvedName : MemberName;
+        }
+        else if (Cast<UK2Node_VariableGet>(Node))
+        {
+            ResolvedType = TEXT("VariableGet");
+        }
+        else if (Cast<UK2Node_VariableSet>(Node))
+        {
+            ResolvedType = TEXT("VariableSet");
+        }
+
+        if (!NodeType.IsEmpty() && !ResolvedType.Equals(NodeType, ESearchCase::IgnoreCase))
+        {
+            continue;
+        }
+        if (!EventName.IsEmpty())
+        {
+            const bool bEventNameMatches =
+                ResolvedName.Equals(EventName, ESearchCase::IgnoreCase) ||
+                ResolvedName.Equals(TEXT("Receive") + EventName, ESearchCase::IgnoreCase);
+            if (!ResolvedType.Equals(TEXT("Event"), ESearchCase::IgnoreCase) ||
+                !bEventNameMatches)
+            {
+                continue;
             }
         }
+
+        TSharedPtr<FJsonObject> NodeObj = MakeShared<FJsonObject>();
+        NodeObj->SetStringField(TEXT("node_id"), Node->NodeGuid.ToString());
+        NodeObj->SetStringField(TEXT("guid"), Node->NodeGuid.ToString());
+        NodeObj->SetStringField(TEXT("type"), ResolvedType);
+        NodeObj->SetStringField(TEXT("name"), ResolvedName);
+        NodeObj->SetNumberField(TEXT("x"), Node->NodePosX);
+        NodeObj->SetNumberField(TEXT("y"), Node->NodePosY);
+
+        NodeGuidArray.Add(MakeShared<FJsonValueString>(Node->NodeGuid.ToString()));
+        NodeArray.Add(MakeShared<FJsonValueObject>(NodeObj));
     }
-    // Add other node types as needed (InputAction, etc.)
     
     TSharedPtr<FJsonObject> ResultObj = MakeShared<FJsonObject>();
+    ResultObj->SetBoolField(TEXT("success"), true);
     ResultObj->SetArrayField(TEXT("node_guids"), NodeGuidArray);
+    ResultObj->SetArrayField(TEXT("nodes"), NodeArray);
+    ResultObj->SetNumberField(TEXT("count"), NodeArray.Num());
 
     return ResultObj;
 }

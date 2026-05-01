@@ -37,6 +37,7 @@
 #include "InputAction.h"
 #include "InputCoreTypes.h"
 #include "InputMappingContext.h"
+#include "HAL/FileManager.h"
 #include "Internationalization/StringTable.h"
 #include "Internationalization/StringTableCore.h"
 #include "Internationalization/TextKey.h"
@@ -45,6 +46,7 @@
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "Misc/ConfigCacheIni.h"
+#include "Misc/FileHelper.h"
 #include "Misc/PackageName.h"
 #include "Misc/Paths.h"
 #include "NiagaraComponent.h"
@@ -386,6 +388,39 @@ namespace
 	{
 		const FString Needle = FString::Printf(TEXT("Tag=\"%s\""), *Tag);
 		return Entry.Contains(Needle);
+	}
+
+	void LoadGameplayTagEntries(const FString& ConfigPath, TArray<FString>& OutEntries)
+	{
+		OutEntries.Reset();
+		GConfig->LoadFile(ConfigPath);
+		GConfig->GetArray(GameplayTagsSection, GameplayTagListKey, OutEntries, ConfigPath);
+
+		if (OutEntries.Num() > 0)
+		{
+			return;
+		}
+
+		TArray<FString> Lines;
+		if (!FFileHelper::LoadFileToStringArray(Lines, *ConfigPath))
+		{
+			return;
+		}
+
+		for (FString Line : Lines)
+		{
+			Line.TrimStartAndEndInline();
+			if (Line.StartsWith(TEXT("+GameplayTagList=")) ||
+				Line.StartsWith(TEXT("GameplayTagList=")))
+			{
+				FString Left;
+				FString Right;
+				if (Line.Split(TEXT("="), &Left, &Right))
+				{
+					OutEntries.Add(Right);
+				}
+			}
+		}
 	}
 
 	void AddStringArrayField(TSharedPtr<FJsonObject> Object, const FString& FieldName, const TArray<FString>& Values)
@@ -1194,7 +1229,7 @@ TSharedPtr<FJsonObject> FUnrealMCPAdvancedCommands::HandleAddGameplayTag(const T
 
 	const FString ConfigPath = FPaths::ProjectConfigDir() / TEXT("DefaultGameplayTags.ini");
 	TArray<FString> ExistingEntries;
-	GConfig->GetArray(GameplayTagsSection, GameplayTagListKey, ExistingEntries, ConfigPath);
+	LoadGameplayTagEntries(ConfigPath, ExistingEntries);
 
 	bool bAlreadyExists = false;
 	for (const FString& Entry : ExistingEntries)
@@ -1211,8 +1246,10 @@ TSharedPtr<FJsonObject> FUnrealMCPAdvancedCommands::HandleAddGameplayTag(const T
 		const FString EscapedComment = Comment.ReplaceCharWithEscapedChar();
 		const FString Entry = FString::Printf(TEXT("(Tag=\"%s\",DevComment=\"%s\")"), *Tag, *EscapedComment);
 		ExistingEntries.Add(Entry);
+		IFileManager::Get().MakeDirectory(*FPaths::GetPath(ConfigPath), true);
 		GConfig->SetArray(GameplayTagsSection, GameplayTagListKey, ExistingEntries, ConfigPath);
 		GConfig->Flush(false, ConfigPath);
+		GConfig->LoadFile(ConfigPath);
 	}
 
 	TSharedPtr<FJsonObject> Data = MakeShared<FJsonObject>();
@@ -1226,7 +1263,7 @@ TSharedPtr<FJsonObject> FUnrealMCPAdvancedCommands::HandleListGameplayTags(const
 {
 	const FString ConfigPath = FPaths::ProjectConfigDir() / TEXT("DefaultGameplayTags.ini");
 	TArray<FString> ExistingEntries;
-	GConfig->GetArray(GameplayTagsSection, GameplayTagListKey, ExistingEntries, ConfigPath);
+	LoadGameplayTagEntries(ConfigPath, ExistingEntries);
 
 	TArray<TSharedPtr<FJsonValue>> Tags;
 	for (const FString& Entry : ExistingEntries)
@@ -1247,7 +1284,11 @@ TSharedPtr<FJsonObject> FUnrealMCPAdvancedCommands::HandleListGameplayTags(const
 	TSharedPtr<FJsonObject> Data = MakeShared<FJsonObject>();
 	Data->SetStringField(TEXT("config_path"), ConfigPath);
 	Data->SetArrayField(TEXT("tags"), Tags);
-	return FUnrealMCPCommonUtils::CreateSuccessResponse(Data);
+
+	TSharedPtr<FJsonObject> Response = FUnrealMCPCommonUtils::CreateSuccessResponse(Data);
+	Response->SetStringField(TEXT("config_path"), ConfigPath);
+	Response->SetArrayField(TEXT("tags"), Tags);
+	return Response;
 }
 
 TSharedPtr<FJsonObject> FUnrealMCPAdvancedCommands::HandleApplyGameplayTags(const TSharedPtr<FJsonObject>& Params)

@@ -52,7 +52,7 @@ def register_editor_tools(mcp: FastMCP):
             return []
 
     @mcp.tool()
-    def find_actors_by_name(ctx: Context, pattern: str) -> List[str]:
+    def find_actors_by_name(ctx: Context, pattern: str) -> List[Dict[str, Any]]:
         """Find actors by name pattern."""
         from unreal_mcp_server import get_unreal_connection
         
