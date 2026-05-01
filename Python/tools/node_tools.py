@@ -479,27 +479,28 @@ def register_blueprint_node_tools(mcp: FastMCP):
         ctx: Context,
         blueprint_name: str,
         node_type = None,
-        event_type = None
+        event_name = None
     ) -> Dict[str, Any]:
         """
         Find nodes in a Blueprint's event graph.
-        
+
         Args:
             blueprint_name: Name of the target Blueprint
             node_type: Optional type of node to find (Event, Function, Variable, etc.)
-            event_type: Optional specific event type to find (BeginPlay, Tick, etc.)
-            
+            event_name: Required when node_type=="Event". The exact event member name
+                        to match (e.g. "ReceiveBeginPlay", "ReceiveTick").
+
         Returns:
             Response containing array of found node IDs and success status
         """
         from unreal_mcp_server import get_unreal_connection
-        
+
         try:
-            params = {
-                "blueprint_name": blueprint_name,
-                "node_type": node_type,
-                "event_type": event_type
-            }
+            params = {"blueprint_name": blueprint_name}
+            if node_type is not None:
+                params["node_type"] = node_type
+            if event_name is not None:
+                params["event_name"] = event_name
             
             unreal = get_unreal_connection()
             if not unreal:

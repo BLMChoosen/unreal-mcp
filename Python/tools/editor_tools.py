@@ -259,7 +259,7 @@ def register_editor_tools(mcp: FastMCP):
             logger.error(error_msg)
             return {"success": False, "message": error_msg}
 
-    # @mcp.tool() commented out because it's buggy
+    @mcp.tool()
     def focus_viewport(
         ctx: Context,
         target: str = None,
@@ -269,41 +269,74 @@ def register_editor_tools(mcp: FastMCP):
     ) -> Dict[str, Any]:
         """
         Focus the viewport on a specific actor or location.
-        
+
         Args:
             target: Name of the actor to focus on (if provided, location is ignored)
             location: [X, Y, Z] coordinates to focus on (used if target is None)
             distance: Distance from the target/location
             orientation: Optional [Pitch, Yaw, Roll] for the viewport camera
-            
+
         Returns:
             Response from Unreal Engine
         """
         from unreal_mcp_server import get_unreal_connection
-        
+
+        if target is None and location is None:
+            return {"success": False, "message": "Either 'target' or 'location' must be provided"}
+
         try:
             unreal = get_unreal_connection()
             if not unreal:
                 logger.error("Failed to connect to Unreal Engine")
                 return {"success": False, "message": "Failed to connect to Unreal Engine"}
-                
+
             params = {}
             if target:
                 params["target"] = target
             elif location:
                 params["location"] = location
-            
+
             if distance:
                 params["distance"] = distance
-                
+
             if orientation:
                 params["orientation"] = orientation
-                
+
             response = unreal.send_command("focus_viewport", params)
             return response or {}
-            
+
         except Exception as e:
             logger.error(f"Error focusing viewport: {e}")
+            return {"status": "error", "message": str(e)}
+
+    @mcp.tool()
+    def take_screenshot(
+        ctx: Context,
+        filepath: str
+    ) -> Dict[str, Any]:
+        """
+        Capture a screenshot of the active editor viewport and save to disk as PNG.
+
+        Args:
+            filepath: Absolute path to write the PNG file. ".png" is appended if missing.
+
+        Returns:
+            Dict with the saved filepath on success, or an error message.
+        """
+        from unreal_mcp_server import get_unreal_connection
+
+        try:
+            unreal = get_unreal_connection()
+            if not unreal:
+                logger.error("Failed to connect to Unreal Engine")
+                return {"success": False, "message": "Failed to connect to Unreal Engine"}
+
+            params = {"filepath": filepath}
+            response = unreal.send_command("take_screenshot", params)
+            return response or {}
+
+        except Exception as e:
+            logger.error(f"Error taking screenshot: {e}")
             return {"status": "error", "message": str(e)}
 
     @mcp.tool()

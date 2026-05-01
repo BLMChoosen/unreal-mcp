@@ -64,7 +64,8 @@ public class UnrealMCP : ModuleRules
 				"AssetTools",
 				"LevelSequence",
 				"MovieScene",
-				"MovieSceneTracks"
+				"MovieSceneTracks",
+				"MessageLog"
 			}
 		);
 

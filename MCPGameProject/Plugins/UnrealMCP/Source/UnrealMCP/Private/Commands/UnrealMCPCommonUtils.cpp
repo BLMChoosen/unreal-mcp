@@ -153,8 +153,48 @@ UBlueprint* FUnrealMCPCommonUtils::FindBlueprint(const FString& BlueprintName)
 
 UBlueprint* FUnrealMCPCommonUtils::FindBlueprintByName(const FString& BlueprintName)
 {
-    FString AssetPath = TEXT("/Game/Blueprints/") + BlueprintName;
-    return LoadObject<UBlueprint>(nullptr, *AssetPath);
+    auto TryLoad = [](const FString& Path) -> UBlueprint*
+    {
+        return LoadObject<UBlueprint>(nullptr, *Path);
+    };
+
+    // 1. Caller passed a fully-qualified path: "/Game/.../BP" or "/Game/.../BP.BP".
+    if (BlueprintName.StartsWith(TEXT("/")))
+    {
+        if (UBlueprint* BP = TryLoad(BlueprintName)) return BP;
+        int32 LastSlash = INDEX_NONE;
+        if (BlueprintName.FindLastChar(TEXT('/'), LastSlash))
+        {
+            const FString AssetName = BlueprintName.Mid(LastSlash + 1);
+            // Strip any "PackageName.AssetName" suffix the caller may have already supplied.
+            int32 DotIdx = INDEX_NONE;
+            const FString BareAsset = AssetName.FindChar(TEXT('.'), DotIdx)
+                ? AssetName.Left(DotIdx) : AssetName;
+            const FString PackagePath = BlueprintName.Left(LastSlash + 1) + BareAsset;
+            if (UBlueprint* BP = TryLoad(PackagePath + TEXT(".") + BareAsset)) return BP;
+        }
+        return nullptr;
+    }
+
+    // 2. Bare name — try the historical default location first.
+    const FString DefaultPath = TEXT("/Game/Blueprints/") + BlueprintName;
+    if (UBlueprint* BP = TryLoad(DefaultPath)) return BP;
+    if (UBlueprint* BP = TryLoad(DefaultPath + TEXT(".") + BlueprintName)) return BP;
+
+    // 3. Fallback: search the AssetRegistry by short name so blueprints anywhere
+    //    under /Game still resolve.
+    FAssetRegistryModule& AssetRegistryModule =
+        FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+    TArray<FAssetData> AssetData;
+    AssetRegistryModule.Get().GetAssetsByClass(UBlueprint::StaticClass()->GetClassPathName(), AssetData);
+    for (const FAssetData& Data : AssetData)
+    {
+        if (Data.AssetName.ToString() == BlueprintName)
+        {
+            if (UBlueprint* BP = Cast<UBlueprint>(Data.GetAsset())) return BP;
+        }
+    }
+    return nullptr;
 }
 
 UEdGraph* FUnrealMCPCommonUtils::FindOrCreateEventGraph(UBlueprint* Blueprint)

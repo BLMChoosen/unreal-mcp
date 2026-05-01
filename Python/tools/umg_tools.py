@@ -41,11 +41,11 @@ def register_umg_tools(mcp: FastMCP):
                 return {"success": False, "message": "Failed to connect to Unreal Engine"}
             
             params = {
-                "widget_name": widget_name,
+                "name": widget_name,
                 "parent_class": parent_class,
                 "path": path
             }
-            
+
             logger.info(f"Creating UMG Widget Blueprint with params: {params}")
             response = unreal.send_command("create_umg_widget_blueprint", params)
             
@@ -96,8 +96,8 @@ def register_umg_tools(mcp: FastMCP):
                 return {"success": False, "message": "Failed to connect to Unreal Engine"}
             
             params = {
-                "widget_name": widget_name,
-                "text_block_name": text_block_name,
+                "blueprint_name": widget_name,
+                "widget_name": text_block_name,
                 "text": text,
                 "position": position,
                 "size": size,
@@ -157,8 +157,8 @@ def register_umg_tools(mcp: FastMCP):
                 return {"success": False, "message": "Failed to connect to Unreal Engine"}
             
             params = {
-                "widget_name": widget_name,
-                "button_name": button_name,
+                "blueprint_name": widget_name,
+                "widget_name": button_name,
                 "text": text,
                 "position": position,
                 "size": size,
@@ -215,8 +215,8 @@ def register_umg_tools(mcp: FastMCP):
                 function_name = f"{widget_component_name}_{event_name}"
             
             params = {
-                "widget_name": widget_name,
-                "widget_component_name": widget_component_name,
+                "blueprint_name": widget_name,
+                "widget_name": widget_component_name,
                 "event_name": event_name,
                 "function_name": function_name
             }
@@ -261,7 +261,7 @@ def register_umg_tools(mcp: FastMCP):
                 return {"success": False, "message": "Failed to connect to Unreal Engine"}
             
             params = {
-                "widget_name": widget_name,
+                "blueprint_name": widget_name,
                 "z_order": z_order
             }
             
@@ -309,9 +309,9 @@ def register_umg_tools(mcp: FastMCP):
                 return {"success": False, "message": "Failed to connect to Unreal Engine"}
             
             params = {
-                "widget_name": widget_name,
-                "text_block_name": text_block_name,
-                "binding_property": binding_property,
+                "blueprint_name": widget_name,
+                "widget_name": text_block_name,
+                "binding_name": binding_property,
                 "binding_type": binding_type
             }
             
