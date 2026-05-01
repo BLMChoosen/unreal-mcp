@@ -8,6 +8,7 @@
 #include "Factories/StructureFactory.h"
 #include "Kismet2/StructureEditorUtils.h"
 #include "Modules/ModuleManager.h"
+#include "UserDefinedStructure/UserDefinedStructEditorData.h"
 #include "UObject/Package.h"
 #include "UObject/SavePackage.h"
 #include "Misc/PackageName.h"
@@ -304,9 +305,7 @@ TSharedPtr<FJsonObject> FUnrealMCPSchemaCommands::HandleGetStructFields(const TS
         FieldObj->SetStringField(TEXT("name"), Var.VarName.ToString());
         FieldObj->SetStringField(TEXT("display_name"), Var.FriendlyName);
         FieldObj->SetStringField(TEXT("guid"), Var.VarGuid.ToString());
-        FEdGraphPinType PinType;
-        PinType.PinCategory = Var.Category;
-        PinType.PinSubCategoryObject = Var.SubCategoryObject;
+        FEdGraphPinType PinType = Var.ToPinType();
         FieldObj->SetStringField(TEXT("type"), PinTypeToTypeString(PinType));
         FieldObj->SetStringField(TEXT("default_value"), Var.DefaultValue);
         Fields.Add(MakeShared<FJsonValueObject>(FieldObj));
