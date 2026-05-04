@@ -24,6 +24,30 @@ def _send(command: str, params: dict) -> dict:
     return response or {"success": False, "message": "No response"}
 
 
+def _promote_result_fields(response: dict, fields: tuple[str, ...]) -> dict:
+    """Copy common bridge result fields to the top level for MCP callers."""
+    if not isinstance(response, dict):
+        return response
+
+    if response.get("status") == "success" and "success" not in response:
+        response["success"] = True
+
+    candidates = []
+    result = response.get("result")
+    if isinstance(result, dict):
+        candidates.append(result)
+        data = result.get("data")
+        if isinstance(data, dict):
+            candidates.append(data)
+
+    for candidate in candidates:
+        for field in fields:
+            if field in candidate and field not in response:
+                response[field] = candidate[field]
+
+    return response
+
+
 def register_advanced_tools(mcp: FastMCP):
     """Register advanced Unreal tools with the MCP server."""
 
@@ -356,10 +380,10 @@ def register_advanced_tools(mcp: FastMCP):
     ) -> dict:
         """Add a Gameplay Tag to Config/DefaultGameplayTags.ini."""
         try:
-            return _send("add_gameplay_tag", {
+            return _promote_result_fields(_send("add_gameplay_tag", {
                 "tag": tag,
                 "comment": comment
-            })
+            }), ("tags", "config_path", "tag", "already_exists"))
         except Exception as e:
             logger.error(f"Error adding gameplay tag: {e}")
             return {"success": False, "message": str(e)}
@@ -368,7 +392,7 @@ def register_advanced_tools(mcp: FastMCP):
     def list_gameplay_tags(ctx: Context) -> dict:
         """List Gameplay Tags from Config/DefaultGameplayTags.ini."""
         try:
-            return _send("list_gameplay_tags", {})
+            return _promote_result_fields(_send("list_gameplay_tags", {}), ("tags", "config_path"))
         except Exception as e:
             logger.error(f"Error listing gameplay tags: {e}")
             return {"success": False, "message": str(e)}

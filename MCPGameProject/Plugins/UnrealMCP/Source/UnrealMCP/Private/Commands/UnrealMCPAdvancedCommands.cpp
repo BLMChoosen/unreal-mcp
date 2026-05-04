@@ -254,7 +254,7 @@ namespace
 			VectorObject->TryGetNumberField(TEXT("x"), X);
 			VectorObject->TryGetNumberField(TEXT("y"), Y);
 			VectorObject->TryGetNumberField(TEXT("z"), Z);
-			return FVector((float)X, (float)Y, (float)Z);
+			return FVector((float)X, (float)Y, (float)Z);	
 		}
 
 		return FUnrealMCPCommonUtils::GetVectorFromJson(Params, FieldName);
@@ -384,23 +384,57 @@ namespace
 		return DataTable;
 	}
 
-	bool GameplayTagEntryContainsTag(const FString& Entry, const FString& Tag)
+	bool ExtractGameplayTagFromEntry(const FString& Entry, FString& OutTag)
 	{
-		const FString Needle = FString::Printf(TEXT("Tag=\"%s\""), *Tag);
-		return Entry.Contains(Needle);
-	}
+		OutTag.Reset();
 
-	void LoadGameplayTagEntries(const FString& ConfigPath, TArray<FString>& OutEntries)
-	{
-		OutEntries.Reset();
-		GConfig->LoadFile(ConfigPath);
-		GConfig->GetArray(GameplayTagsSection, GameplayTagListKey, OutEntries, ConfigPath);
+		FString TrimmedEntry = Entry;
+		TrimmedEntry.TrimStartAndEndInline();
 
-		if (OutEntries.Num() > 0)
+		FString Left;
+		FString Rest;
+		if (TrimmedEntry.Split(TEXT("Tag=\""), &Left, &Rest, ESearchCase::IgnoreCase))
 		{
-			return;
+			return Rest.Split(TEXT("\""), &OutTag, &Rest) && !OutTag.IsEmpty();
 		}
 
+		if (TrimmedEntry.Split(TEXT("Tag="), &Left, &Rest, ESearchCase::IgnoreCase))
+		{
+			int32 EndIndex = INDEX_NONE;
+			const int32 CommaIndex = Rest.Find(TEXT(","));
+			const int32 CloseParenIndex = Rest.Find(TEXT(")"));
+
+			if (CommaIndex != INDEX_NONE)
+			{
+				EndIndex = CommaIndex;
+			}
+			if (CloseParenIndex != INDEX_NONE && (EndIndex == INDEX_NONE || CloseParenIndex < EndIndex))
+			{
+				EndIndex = CloseParenIndex;
+			}
+
+			OutTag = EndIndex == INDEX_NONE ? Rest : Rest.Left(EndIndex);
+			OutTag.TrimStartAndEndInline();
+			if ((OutTag.StartsWith(TEXT("\"")) && OutTag.EndsWith(TEXT("\""))) ||
+				(OutTag.StartsWith(TEXT("'")) && OutTag.EndsWith(TEXT("'"))))
+			{
+				OutTag = OutTag.Mid(1, OutTag.Len() - 2);
+			}
+
+			return !OutTag.IsEmpty();
+		}
+
+		return false;
+	}
+
+	bool GameplayTagEntryContainsTag(const FString& Entry, const FString& Tag)
+	{
+		FString EntryTag;
+		return ExtractGameplayTagFromEntry(Entry, EntryTag) && EntryTag.Equals(Tag, ESearchCase::IgnoreCase);
+	}
+
+	void LoadGameplayTagEntriesFromFile(const FString& ConfigPath, TArray<FString>& OutEntries)
+	{
 		TArray<FString> Lines;
 		if (!FFileHelper::LoadFileToStringArray(Lines, *ConfigPath))
 		{
@@ -421,6 +455,22 @@ namespace
 				}
 			}
 		}
+	}
+
+	void LoadGameplayTagEntries(const FString& ConfigPath, TArray<FString>& OutEntries)
+	{
+		OutEntries.Reset();
+
+		// Prefer the file on disk so a tag written earlier in the same MCP session
+		// is visible even if the GameplayTags config cache has not refreshed yet.
+		LoadGameplayTagEntriesFromFile(ConfigPath, OutEntries);
+		if (OutEntries.Num() > 0)
+		{
+			return;
+		}
+
+		GConfig->LoadFile(ConfigPath);
+		GConfig->GetArray(GameplayTagsSection, GameplayTagListKey, OutEntries, ConfigPath);
 	}
 
 	void AddStringArrayField(TSharedPtr<FJsonObject> Object, const FString& FieldName, const TArray<FString>& Values)
@@ -1256,6 +1306,20 @@ TSharedPtr<FJsonObject> FUnrealMCPAdvancedCommands::HandleAddGameplayTag(const T
 	Data->SetStringField(TEXT("tag"), Tag);
 	Data->SetStringField(TEXT("config_path"), ConfigPath);
 	Data->SetBoolField(TEXT("already_exists"), bAlreadyExists);
+
+	TArray<FString> UpdatedEntries;
+	LoadGameplayTagEntries(ConfigPath, UpdatedEntries);
+
+	TArray<FString> UpdatedTags;
+	for (const FString& Entry : UpdatedEntries)
+	{
+		FString EntryTag;
+		if (ExtractGameplayTagFromEntry(Entry, EntryTag))
+		{
+			UpdatedTags.AddUnique(EntryTag);
+		}
+	}
+	AddStringArrayField(Data, TEXT("tags"), UpdatedTags);
 	return FUnrealMCPCommonUtils::CreateSuccessResponse(Data);
 }
 
@@ -1268,14 +1332,8 @@ TSharedPtr<FJsonObject> FUnrealMCPAdvancedCommands::HandleListGameplayTags(const
 	TArray<TSharedPtr<FJsonValue>> Tags;
 	for (const FString& Entry : ExistingEntries)
 	{
-		FString Left;
-		FString Rest;
-		if (!Entry.Split(TEXT("Tag=\""), &Left, &Rest))
-		{
-			continue;
-		}
 		FString Tag;
-		if (Rest.Split(TEXT("\""), &Tag, &Rest))
+		if (ExtractGameplayTagFromEntry(Entry, Tag))
 		{
 			Tags.Add(MakeShared<FJsonValueString>(Tag));
 		}

@@ -85,6 +85,33 @@ namespace
 
 		return nullptr;
 	}
+
+	FVector2D GetVector2DFromArrayField(const TSharedPtr<FJsonObject>& Params, const FString& FieldName, const FVector2D& DefaultValue)
+	{
+		const TArray<TSharedPtr<FJsonValue>>* Values = nullptr;
+		if (Params->TryGetArrayField(FieldName, Values) && Values->Num() >= 2)
+		{
+			return FVector2D((*Values)[0]->AsNumber(), (*Values)[1]->AsNumber());
+		}
+
+		return DefaultValue;
+	}
+
+	FLinearColor GetLinearColorFromArrayField(const TSharedPtr<FJsonObject>& Params, const FString& FieldName, const FLinearColor& DefaultValue)
+	{
+		const TArray<TSharedPtr<FJsonValue>>* Values = nullptr;
+		if (Params->TryGetArrayField(FieldName, Values) && Values->Num() >= 4)
+		{
+			return FLinearColor(
+				(*Values)[0]->AsNumber(),
+				(*Values)[1]->AsNumber(),
+				(*Values)[2]->AsNumber(),
+				(*Values)[3]->AsNumber()
+			);
+		}
+
+		return DefaultValue;
+	}
 }
 
 FUnrealMCPUMGCommands::FUnrealMCPUMGCommands()
@@ -309,43 +336,67 @@ TSharedPtr<FJsonObject> FUnrealMCPUMGCommands::HandleAddWidgetToViewport(const T
 TSharedPtr<FJsonObject> FUnrealMCPUMGCommands::HandleAddButtonToWidget(const TSharedPtr<FJsonObject>& Params)
 {
 	TSharedPtr<FJsonObject> Response = MakeShared<FJsonObject>();
+	auto CreateButtonError = [](const FString& Message)
+	{
+		return FUnrealMCPCommonUtils::CreateErrorResponse(Message);
+	};
 
 	// Get required parameters
 	FString BlueprintName;
 	if (!Params->TryGetStringField(TEXT("blueprint_name"), BlueprintName))
 	{
-		Response->SetStringField(TEXT("error"), TEXT("Missing blueprint_name parameter"));
-		return Response;
+		return CreateButtonError(TEXT("Missing blueprint_name parameter"));
 	}
 
 	FString WidgetName;
 	if (!Params->TryGetStringField(TEXT("widget_name"), WidgetName))
 	{
-		Response->SetStringField(TEXT("error"), TEXT("Missing widget_name parameter"));
-		return Response;
+		return CreateButtonError(TEXT("Missing widget_name parameter"));
 	}
 
 	FString ButtonText;
 	if (!Params->TryGetStringField(TEXT("text"), ButtonText))
 	{
-		Response->SetStringField(TEXT("error"), TEXT("Missing text parameter"));
-		return Response;
+		return CreateButtonError(TEXT("Missing text parameter"));
 	}
+
+	const FVector2D Position = GetVector2DFromArrayField(Params, TEXT("position"), FVector2D(0.0f, 0.0f));
+	const FVector2D Size = GetVector2DFromArrayField(Params, TEXT("size"), FVector2D(200.0f, 50.0f));
+	const FLinearColor TextColor = GetLinearColorFromArrayField(Params, TEXT("color"), FLinearColor::White);
+	const FLinearColor BackgroundColor = GetLinearColorFromArrayField(Params, TEXT("background_color"), FLinearColor(0.1f, 0.1f, 0.1f, 1.0f));
+
+	int32 FontSize = 12;
+	Params->TryGetNumberField(TEXT("font_size"), FontSize);
+	FontSize = FMath::Max(1, FontSize);
 
 	// Load the Widget Blueprint
 	UWidgetBlueprint* WidgetBlueprint = LoadWidgetBlueprintAsset(BlueprintName);
 	if (!WidgetBlueprint)
 	{
-		Response->SetStringField(TEXT("error"), FString::Printf(TEXT("Failed to load Widget Blueprint: %s"), *BlueprintName));
+		return CreateButtonError(FString::Printf(TEXT("Failed to load Widget Blueprint: %s"), *BlueprintName));
+	}
+
+	if (UWidget* ExistingWidget = WidgetBlueprint->WidgetTree->FindWidget(*WidgetName))
+	{
+		if (!Cast<UButton>(ExistingWidget))
+		{
+			return CreateButtonError(FString::Printf(TEXT("Widget '%s' already exists and is not a Button"), *WidgetName));
+		}
+
+		Response->SetBoolField(TEXT("success"), true);
+		Response->SetBoolField(TEXT("already_exists"), true);
+		Response->SetStringField(TEXT("widget_name"), WidgetName);
 		return Response;
 	}
+
+	WidgetBlueprint->Modify();
+	WidgetBlueprint->WidgetTree->Modify();
 
 	// Create Button widget
 	UButton* Button = WidgetBlueprint->WidgetTree->ConstructWidget<UButton>(UButton::StaticClass(), *WidgetName);
 	if (!Button)
 	{
-		Response->SetStringField(TEXT("error"), TEXT("Failed to create Button widget"));
-		return Response;
+		return CreateButtonError(TEXT("Failed to create Button widget"));
 	}
 
 	// Set button text
@@ -353,38 +404,43 @@ TSharedPtr<FJsonObject> FUnrealMCPUMGCommands::HandleAddButtonToWidget(const TSh
 	if (ButtonTextBlock)
 	{
 		ButtonTextBlock->SetText(FText::FromString(ButtonText));
-		Button->AddChild(ButtonTextBlock);
+		ButtonTextBlock->SetColorAndOpacity(FSlateColor(TextColor));
+		ButtonTextBlock->SetJustification(ETextJustify::Center);
+
+		FSlateFontInfo FontInfo = ButtonTextBlock->GetFont();
+		FontInfo.Size = FontSize;
+		ButtonTextBlock->SetFont(FontInfo);
+
+		Button->SetContent(ButtonTextBlock);
 	}
+
+	Button->SetBackgroundColor(BackgroundColor);
 
 	// Get canvas panel and add button
 	UCanvasPanel* RootCanvas = Cast<UCanvasPanel>(WidgetBlueprint->WidgetTree->RootWidget);
 	if (!RootCanvas)
 	{
-		Response->SetStringField(TEXT("error"), TEXT("Root widget is not a Canvas Panel"));
-		return Response;
+		return CreateButtonError(TEXT("Root widget is not a Canvas Panel"));
 	}
 
 	// Add to canvas and set position
+	RootCanvas->Modify();
 	UCanvasPanelSlot* ButtonSlot = RootCanvas->AddChildToCanvas(Button);
 	if (ButtonSlot)
 	{
-		const TArray<TSharedPtr<FJsonValue>>* Position;
-		if (Params->TryGetArrayField(TEXT("position"), Position) && Position->Num() >= 2)
-		{
-			FVector2D Pos(
-				(*Position)[0]->AsNumber(),
-				(*Position)[1]->AsNumber()
-			);
-			ButtonSlot->SetPosition(Pos);
-		}
+		ButtonSlot->SetPosition(Position);
+		ButtonSlot->SetSize(Size);
 	}
 
-	// Save the Widget Blueprint
+	// Match add_text_block_to_widget: compile and mark dirty, but do not force a save
+	// from the MCP command path. Saving can block long enough for socket clients to time out.
+	FBlueprintEditorUtils::MarkBlueprintAsModified(WidgetBlueprint);
+	WidgetBlueprint->MarkPackageDirty();
 	FKismetEditorUtilities::CompileBlueprint(WidgetBlueprint);
-	UEditorAssetLibrary::SaveLoadedAsset(WidgetBlueprint, false);
 
 	Response->SetBoolField(TEXT("success"), true);
 	Response->SetStringField(TEXT("widget_name"), WidgetName);
+	Response->SetStringField(TEXT("text"), ButtonText);
 	return Response;
 }
 

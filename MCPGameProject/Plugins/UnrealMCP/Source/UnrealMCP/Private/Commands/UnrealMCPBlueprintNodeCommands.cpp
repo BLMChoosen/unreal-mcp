@@ -58,6 +58,7 @@
 #include "Kismet/BlueprintSetLibrary.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetArrayLibrary.h"
+#include "Kismet/KismetSystemLibrary.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "EdGraphSchema_K2.h"
 #include "UObject/SavePackage.h"
@@ -615,6 +616,11 @@ TSharedPtr<FJsonObject> FUnrealMCPBlueprintNodeCommands::HandleAddBlueprintFunct
     // Check for target parameter (optional)
     FString Target;
     Params->TryGetStringField(TEXT("target"), Target);
+    if ((Target.IsEmpty() || Target.Equals(TEXT("self"), ESearchCase::IgnoreCase) || Target.Equals(TEXT("this"), ESearchCase::IgnoreCase)) &&
+        FunctionName.Equals(TEXT("PrintString"), ESearchCase::IgnoreCase))
+    {
+        Target = TEXT("UKismetSystemLibrary");
+    }
 
     // Find the blueprint
     UBlueprint* Blueprint = FUnrealMCPCommonUtils::FindBlueprint(BlueprintName);
@@ -677,18 +683,17 @@ TSharedPtr<FJsonObject> FUnrealMCPBlueprintNodeCommands::HandleAddBlueprintFunct
             }
         }
         
-        // Special case handling for common classes like UGameplayStatics
-        if (!TargetClass && Target == TEXT("UGameplayStatics"))
+        // Special case handling for common blueprint function libraries
+        if (!TargetClass && (Target.Equals(TEXT("UKismetSystemLibrary"), ESearchCase::IgnoreCase) ||
+            Target.Equals(TEXT("KismetSystemLibrary"), ESearchCase::IgnoreCase)))
         {
-            // For UGameplayStatics, use a direct reference to known class
-            TargetClass = FindFirstObjectSafe<UClass>(TEXT("UGameplayStatics"));
-            if (!TargetClass)
-            {
-                // Try loading it from its known package
-                TargetClass = LoadObject<UClass>(nullptr, TEXT("/Script/Engine.GameplayStatics"));
-                UE_LOG(LogTemp, Display, TEXT("Explicitly loading GameplayStatics: %s"), 
-                       TargetClass ? TEXT("Success") : TEXT("Failed"));
-            }
+            TargetClass = UKismetSystemLibrary::StaticClass();
+        }
+
+        if (!TargetClass && (Target.Equals(TEXT("UGameplayStatics"), ESearchCase::IgnoreCase) ||
+            Target.Equals(TEXT("GameplayStatics"), ESearchCase::IgnoreCase)))
+        {
+            TargetClass = UGameplayStatics::StaticClass();
         }
         
         // If we found a target class, look for the function there

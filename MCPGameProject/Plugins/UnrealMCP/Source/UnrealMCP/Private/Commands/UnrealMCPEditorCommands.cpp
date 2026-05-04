@@ -25,6 +25,41 @@
 #include "UnrealEdGlobals.h"
 #include "ShowFlags.h"
 
+namespace
+{
+    bool DoesActorNameMatchPattern(AActor* Actor, const FString& Pattern)
+    {
+        if (!Actor || Pattern.IsEmpty())
+        {
+            return false;
+        }
+
+        TArray<FString> CandidateNames;
+        CandidateNames.Add(Actor->GetName());
+
+#if WITH_EDITOR
+        CandidateNames.Add(Actor->GetActorLabel());
+#endif
+
+        for (const FString& CandidateName : CandidateNames)
+        {
+            if (CandidateName.IsEmpty())
+            {
+                continue;
+            }
+
+            if (CandidateName.Equals(Pattern, ESearchCase::IgnoreCase) ||
+                CandidateName.Contains(Pattern, ESearchCase::IgnoreCase) ||
+                CandidateName.MatchesWildcard(Pattern, ESearchCase::IgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+}
+
 FUnrealMCPEditorCommands::FUnrealMCPEditorCommands()
 {
 }
@@ -163,7 +198,7 @@ TSharedPtr<FJsonObject> FUnrealMCPEditorCommands::HandleFindActorsByName(const T
     TArray<TSharedPtr<FJsonValue>> MatchingActors;
     for (AActor* Actor : AllActors)
     {
-        if (Actor && Actor->GetName().Contains(Pattern))
+        if (DoesActorNameMatchPattern(Actor, Pattern))
         {
             MatchingActors.Add(FUnrealMCPCommonUtils::ActorToJson(Actor));
         }

@@ -68,8 +68,14 @@ def register_editor_tools(mcp: FastMCP):
             
             if not response:
                 return []
-                
-            return response.get("actors", [])
+
+            if "result" in response and "actors" in response["result"]:
+                return response["result"]["actors"]
+            if "actors" in response:
+                return response["actors"]
+
+            logger.warning(f"Unexpected find_actors_by_name response format: {response}")
+            return []
             
         except Exception as e:
             logger.error(f"Error finding actors: {e}")
