@@ -6,20 +6,40 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Unreal Engine](https://img.shields.io/badge/Unreal%20Engine-5.5%2B-orange)](https://www.unrealengine.com)
 [![Python](https://img.shields.io/badge/Python-3.12%2B-yellow)](https://www.python.org)
-[![Status](https://img.shields.io/badge/Status-Experimental-red)](https://github.com/chongdashu/unreal-mcp)
+[![Status](https://img.shields.io/badge/Status-Archived-lightgrey)](https://github.com/chongdashu/unreal-mcp)
 
 </div>
 
-This project enables AI assistant clients like Cursor, Windsurf and Claude Desktop to control Unreal Engine through natural language using the Model Context Protocol (MCP).
+> [!IMPORTANT]
+> ## Repository archived
+> This repository was **archived on October 3, 2026** because Epic Games now provides official MCP support directly in Unreal Editor.
+>
+> ### Timeline
+> - **June 17, 2026**: public announcement of official support in the **Unreal Engine 5.8** cycle.
+> - **October 3, 2026**: this project was archived and is now kept only for historical reference.
+>
+> ### Official links
+> - Unreal MCP in Unreal Editor (official documentation):  
+>   https://dev.epicgames.com/documentation/unreal-engine/unreal-mcp-in-unreal-editor?lang=en-US
+> - Unreal Engine on GitHub (official source, requires linked Epic/GitHub accounts):  
+>   https://github.com/EpicGames/UnrealEngine
+> - How to access Unreal Engine source code (Epic guide):  
+>   https://dev.epicgames.com/documentation/unreal-engine/downloading-source-code-in-unreal-engine?lang=en-US
+>
+> ### What this means for users of this repository
+> - There will be no new features, fixes, or active support here.
+> - The content remains available for study and reference of prior implementations.
+> - For new projects, use Epic’s official MCP server in Unreal Engine 5.8+.
 
-## ⚠️ Experimental Status
+This project enabled AI assistant clients like Cursor, Windsurf and Claude Desktop to control Unreal Engine through natural language using the Model Context Protocol (MCP).
 
-This project is currently in an **EXPERIMENTAL** state. The API, functionality, and implementation details are subject to significant changes. While we encourage testing and feedback, please be aware that:
+## 📦 Archive Status
 
-- Breaking changes may occur without notice
-- Features may be incomplete or unstable
-- Documentation may be outdated or missing
-- Production use is not recommended at this time
+This repository is now archived and no longer under active development. It remains available for historical reference and learning.
+
+- No new features or fixes will be delivered here
+- Documentation may become outdated over time
+- New adopters should use Epic's official Unreal MCP support
 
 ## 🌟 Overview
 
