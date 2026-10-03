@@ -11,25 +11,25 @@
 </div>
 
 > [!IMPORTANT]
-> ## Repositório arquivado
-> Este repositório foi **arquivado em 03/10/2026** porque a Epic Games passou a oferecer suporte oficial ao MCP diretamente no Unreal Editor.
+> ## Repository archived
+> This repository was **archived on October 3, 2026** because Epic Games now provides official MCP support directly in Unreal Editor.
 >
-> ### Linha do tempo
-> - **17/06/2026**: anúncio público do suporte oficial no ciclo do **Unreal Engine 5.8**.
-> - **03/10/2026**: este projeto foi arquivado e mantido apenas para referência histórica.
+> ### Timeline
+> - **June 17, 2026**: public announcement of official support in the **Unreal Engine 5.8** cycle.
+> - **October 3, 2026**: this project was archived and is now kept only for historical reference.
 >
-> ### Links oficiais
-> - Unreal MCP no Unreal Editor (documentação oficial):  
+> ### Official links
+> - Unreal MCP in Unreal Editor (official documentation):  
 >   https://dev.epicgames.com/documentation/unreal-engine/unreal-mcp-in-unreal-editor?lang=en-US
-> - Unreal Engine no GitHub (código-fonte oficial, requer vínculo de conta Epic/GitHub):  
+> - Unreal Engine on GitHub (official source, requires linked Epic/GitHub accounts):  
 >   https://github.com/EpicGames/UnrealEngine
-> - Como acessar o código-fonte oficial da Unreal (guia da Epic):  
+> - How to access Unreal Engine source code (Epic guide):  
 >   https://dev.epicgames.com/documentation/unreal-engine/downloading-source-code-in-unreal-engine?lang=en-US
 >
-> ### O que isso significa para quem usa este repositório
-> - Não haverá novas features, correções ou suporte ativo aqui.
-> - O conteúdo continua disponível para estudo e consulta de implementações anteriores.
-> - Para novos projetos, prefira o servidor MCP oficial da Epic no Unreal Engine 5.8+.
+> ### What this means for users of this repository
+> - There will be no new features, fixes, or active support here.
+> - The content remains available for study and reference of prior implementations.
+> - For new projects, use Epic’s official MCP server in Unreal Engine 5.8+.
 
 This project enabled AI assistant clients like Cursor, Windsurf and Claude Desktop to control Unreal Engine through natural language using the Model Context Protocol (MCP).
 
